@@ -6,93 +6,220 @@ Personal net worth tracker. Not a budgeting app. The differentiator is an asset
 vault with AI/market-data valuation, split into liquid vs illiquid wealth.
 Mobile-first. Single user for now (Marcus).
 
-## Stack
+## Stack and deploy
 
-- Next.js (App Router, TypeScript, Turbopack), Tailwind
+- Next.js 16.2.10 (App Router, TypeScript, Turbopack), React 19, Tailwind v4
+- Auth/routing gate lives in `proxy.ts` — Next 16 renamed Middleware to
+  "Proxy" (see AGENTS.md's warning about API differences; this is the
+  concrete instance of it). It refreshes the Supabase session and redirects
+  unauthenticated requests to `/login`.
 - Supabase: auth + Postgres
 - Anthropic API for valuations and reminders, model `claude-haiku-4-5`
-- Yahoo Finance for stock prices and gold spot
+- Yahoo Finance for stock prices, gold spot, and FX rates (`lib/prices/yahoo.ts`)
 - Local dev: `npm run dev` at localhost:3000
+- Deployed to Vercel: finance-app-eosin-alpha.vercel.app. Every push to `main`
+  on GitHub auto-deploys.
+- Env vars must exist in BOTH `.env.local` and the Vercel dashboard
+  (Settings → Environment Variables). Adding/renaming one the app depends on
+  needs both, or the live site breaks at runtime while the build still passes.
+- Email confirmation is ON in Supabase.
 
-## Hard rules
+## Migrations
 
-**Migrations.** They live FLAT in `supabase/`, not in `supabase/migrations/`.
-Numbered sequentially: 002 through 012. **Latest applied is 012.**
-Never run, apply, or push a migration. PRINT the SQL only. Marcus pastes it
-into the Supabase SQL Editor by hand.
+Flat in `supabase/`, not `supabase/migrations/`. Numbered sequentially,
+002 through 014 (highest file present: `014_base_currency.sql`).
+**Last CONFIRMED applied: 012.** 013 and 014 are written and printed but
+whether Marcus has run them is unconfirmed — see Current state.
 
-**Postgres enums.** Do not create new enums or add values to existing ones in a
-migration that also uses them. Migration 008 had to be split into 008a/008b for
-exactly this reason. Use `text` + a `CHECK` constraint instead.
+Never run, apply, or push a migration. PRINT the SQL in one copy-paste block;
+Marcus runs it in the Supabase SQL Editor by hand.
 
-**API keys.** The Anthropic key lives in `.env.local`, server-side only. Never
-add a `NEXT_PUBLIC_` prefix. Never reference it in a client component.
+The SQL Editor runs as a role that BYPASSES RLS — `delete from x;` there acts
+on every user's rows, not just "the current user." Harmless today (single
+user), but say so explicitly when handing over SQL that deletes or updates.
 
-**No new npm packages** without asking first.
+Code reading a column that doesn't exist yet in the DB fails with a schema-
+cache error, not a normal SQL error. If it persists after Marcus runs the
+migration, have him run `notify pgrst, 'reload schema';` to clear it.
 
-**Scope.** Only touch files explicitly listed in the task. If the real schema or
-file layout differs from what the task describes, STOP and print what's actually
-there instead of guessing at column names.
+Postgres enums: never create one, or add a value to an existing one, in a
+migration that also uses it — migration 008 had to split into 008a/008b for
+exactly this. Use `text` + `CHECK` instead (every currency column already
+does: plain `text not null default '...'`, no enum/CHECK, ever).
 
 ## Schema gotchas
 
-**liabilities** has two independent concepts, do not derive one from the other:
-- `liability_type` — a Postgres enum (mortgage, car_loan, student_loan,
-  credit_card, personal_loan, other). What the debt IS.
-- `kind` — text + CHECK ('simple' | 'amortizing'). How the balance BEHAVES.
+- `liabilities.balance` is a stale snapshot for amortizing rows — written at
+  save time, never updated. NEVER read it directly for an amortizing
+  liability; always go through `currentBalance()` in `lib/amortization.ts`.
+  `liability_type` (what the debt IS) and `kind` (`'simple'|'amortizing'`,
+  how the balance BEHAVES) are independent — don't derive one from the other.
+- Every money amount is stored in the currency it was entered in and is
+  NEVER converted in storage. `transactions`, `cash_accounts`, `assets`,
+  `holdings`, `liabilities` each carry their own `currency` column;
+  `user_rules.currency` and `user_profiles.preferred_currency` do too as of
+  013/014 (unconfirmed live — see Migrations). Conversion only ever happens
+  at display time (see FX rate access below).
+- `lib/amortization.ts` is pure math — no Supabase imports, no React, no
+  side effects. Keep it that way.
+- Liability totals flow through `lib/calculations/networth.ts`, the single
+  call site for `currentBalance()`. Change liability math there only.
 
-The column is `balance`, not `current_balance`.
+## Conventions
 
-**`balance` is a stale snapshot for amortizing rows.** It is written at save time
-and never updated. NEVER read it directly for an amortizing liability. Always go
-through `currentBalance()` in `lib/amortization.ts`.
+- Controlled inputs default to `''`, never `undefined`/`null`. Hydrate
+  nullable DB columns with `String(x ?? '')`; parse to number only at submit
+  time. Conditional RENDERING of a field is fine; conditional VALUE is not —
+  two different inputs at the same JSX position reconciled by a ternary get
+  treated as the same DOM node by React (a real bug in `liability-form.tsx`
+  once).
+- ASCII only in `app/globals.css`. An em dash inside a CSS comment there once
+  silently truncated the entire compiled stylesheet from that point on —
+  every token after it vanished from the build, no error thrown. Plain
+  hyphens only in CSS comments.
+- `react-hooks/set-state-in-effect` is a known, deliberately-unfixed lint
+  warning, confirmed as the ONLY lint issue anywhere in the project (6
+  errors, one each) in: `app/transactions/transaction-form.tsx`,
+  `app/holdings/holding-form.tsx`, `app/liabilities/liability-form.tsx`,
+  `app/assets/asset-form.tsx`, `app/net-worth-view.tsx`,
+  `app/portfolio/portfolio-view.tsx`. Does not block `next build`. Don't fix
+  it as a side quest.
+- `Money` (`components/ui/Money.tsx`) already does `Intl.NumberFormat`
+  currency formatting, tabular-nums, and pos/neg coloring via its `signed`
+  prop. Don't hand-roll currency formatting elsewhere. If `signed` can't
+  express the color you need (e.g. income vs. expense, where positive isn't
+  always "good"), override via `className="[--text:var(--pos)]"` /
+  `"[--text:var(--neg)]"` — this shadows the CSS variable Money's own class
+  reads, which is reliable; competing Tailwind color classes on the same
+  element are not (class order in the string doesn't decide the winner).
+- Mixed-currency amounts are never silently summed. Convention used
+  everywhere this comes up (see `app/dashboard/page.tsx` for four examples):
+  if every row shares one currency, show the real total via `Money`; if not,
+  show the raw number with the `.tnum` class and no currency symbol, plus a
+  small "(mixed currencies)" note. Reuse this, don't invent a new one.
+- No npm packages without asking first.
+- Only touch files explicitly listed in the task. If the real schema or file
+  layout differs from what the task describes, STOP and print what's
+  actually there instead of guessing at column names.
 
-`lib/amortization.ts` is pure math. No Supabase imports, no React, no side
-effects. Keep it that way.
+## Design system
 
-## Where things are summed
+Tokens in `app/globals.css` as CSS custom properties — `--bg`, `--surface`,
+`--surface-2`, `--border`, `--border-strong`, `--text`, `--text-muted`,
+`--text-subtle`, `--accent`, `--accent-fg`, `--pos`, `--neg`; spacing
+`--sp-1..8`; radius `--r-sm/md/lg`; type scale `--t-xs..2xl`. Light values on
+`:root`, dark under `prefers-color-scheme: dark` — no manual theme toggle.
+Used via Tailwind arbitrary values, e.g. `bg-[var(--surface)]`.
 
-Liability totals flow through `lib/calculations/networth.ts` — this is the single
-call site for `currentBalance()`. Consumed by `app/page.tsx`,
-`app/net-worth-view.tsx`, and `lib/calculations/snapshots.ts`.
-`app/cash/page.tsx` references it for display. If you change liability math,
-change it in networth.ts only.
+Shared components in `components/ui/` (`@/components/ui`): `Card`,
+`PageHeader` (title + optional `nav` slot — **no subtitle prop**; pages
+wanting one render a sibling `<p>` right after it — see `app/dashboard`,
+`app/plan`, `app/settings`), `Button` (primary/secondary/danger, one size),
+`Input`, `Select`, `Label`, `Field`, `Money`.
 
-## Forms convention
+Only some pages are on this system: dashboard, transactions, onboarding,
+more, plan, settings-shell. Cash, holdings, liabilities, assets, portfolio,
+reminders, and every edit/detail sub-page are still original unstyled
+markup. That's expected — pages get restyled one at a time, not a bug to fix
+in passing.
 
-All text/number/date inputs are fully controlled. State is typed `string` and
-initialized to `''`. Never `undefined`, never `null`, never a number. Hydrate
-nullable DB columns with `String(x ?? '')`. Parse to number only at submit time.
+## Navigation
 
-Conditional RENDERING of a field is fine. Conditional VALUE is not. Two different
-inputs rendered at the same JSX tree position by a ternary get reconciled by
-React as the same DOM node, which caused a real controlled/uncontrolled bug in
-`liability-form.tsx`.
+No top-of-page link rows. A fixed bottom tab bar (`app/bottom-tab-bar.tsx`,
+mounted via `app/app-shell.tsx` in the root layout) has 4 tabs: Home
+(`/dashboard`), Transactions (`/transactions`), Net worth (`/`), More
+(`/more`). `app-shell.tsx` hides the bar on `/login` and `/onboarding*` —
+that check exists in exactly one place (`isChromeHidden`); don't duplicate
+it elsewhere. `/more` lists Plan, Portfolio, Reminders, Settings — Cash,
+Assets, Liabilities, Holdings are reached from the Net Worth page's tappable
+summary boxes instead, not from More.
 
 ## Cost control
 
-Per-user cap of 20 AI credits/day, enforced server-side via a SECURITY DEFINER
-function, resets at UTC midnight (8am Taipei). Gold and vehicle valuations are
-free (live spot / depreciation formula) and don't consume credits.
+Per-user cap of 20 AI credits/day, enforced server-side via a SECURITY
+DEFINER function (`consume_ai_credit`, migration 008b), resets at UTC
+midnight (8am Taipei). Gold and vehicle valuations are free (live spot /
+depreciation formula) and don't consume credits. Never add an Anthropic API
+call to something computable with arithmetic — amortization, FX conversion,
+and totals are math, not AI.
 
-Never add an Anthropic API call to something that can be computed with
-arithmetic. Amortization, FX conversion, and totals are math, not AI.
+## Shared things to reuse
 
-## Known conditions — leave alone
+- **`saveSpendingRules`** — `app/settings/actions.ts`. The one save action
+  for the user's plan (spending limit, savings target, up to 2 category
+  limits, spender lean, saving-toward text, base currency). Called by
+  `app/settings/rules-form.tsx` (rendered at `/plan`, not `/settings` — the
+  file didn't move, only which page imports it did) and
+  `app/onboarding/onboarding-wizard.tsx`. One save, writes `user_rules` rows
+  and `user_profiles.preferred_currency` together. Don't add a second save
+  action for plan data.
+- **`loadRulesDefaults`** — `app/settings/defaults.ts`. Loads plan
+  prefill/state: rule amounts, `preferred_currency`, `onboarding_completed_at`,
+  and `savingsTargetCurrency` (the specific currency the savings-target rule
+  was actually saved in — distinct from `preferred_currency`, which can
+  change later). Called by `/plan`, `/onboarding`, and
+  `app/dashboard/page.tsx`'s safe-to-spend card.
+- **`CURRENCIES` / `CURRENCY_CODES` / `currencyPlaceholder()`** —
+  `lib/currencies.ts`. The single source of truth for supported currencies
+  (TWD, USD only). `lib/tickers.ts`'s `SUPPORTED_CURRENCIES` (used by cash,
+  holdings, liabilities, and asset forms) derives from it — there is really
+  only one list in the codebase. Adding a currency is one new entry here.
+- **`MANAGE_LINK_CLASS`** — `app/dashboard/page.tsx`. Shared class string
+  for a `<Link>` styled identically to `<Button variant="secondary">`.
+  Exists because nesting a native `<button>` inside an `<a>` is invalid
+  HTML — use this instead of wrapping `Button` in `Link` for any
+  styled-as-a-button navigation.
+- **`currentBalance()`** — `lib/amortization.ts`. See Schema gotchas.
+- **FX rate access** — `getPriceProvider().getFxRate(from, to)` from
+  `lib/prices` (currently `lib/prices/yahoo.ts`, TTL-cached). Two call sites:
+  `lib/calculations/networth.ts` wraps it in its own `fxMemo()` inside the
+  full net-worth computation (also pulls in live portfolio prices — don't
+  call `computeNetWorth` just to get one rate); `app/dashboard/page.tsx`'s
+  `convertToTWD()` calls `getFxRate` directly for one cheap lookup when the
+  safe-to-spend card needs to reconcile cash/spending/savings-target that
+  are each a single but different currency. Prefer the direct call unless
+  you actually need the whole net-worth computation.
 
-`react-hooks/set-state-in-effect` lint warning exists in `TransactionForm`,
-`HoldingForm`, and `liability-form.tsx`. Pre-existing repo-wide pattern, does not
-block `next build`. Do not fix it as a side quest.
+## Current state
 
-## Before deploying
+**Built and working:** net worth page (liquid/illiquid/liabilities, FX
+toggle, trend chart), its three summary boxes relabeled in plain language
+(Cash & Investments / Assets / Debts) and made tappable — Assets and Debts
+link out whole, Cash & Investments' two sub-lines link to `/cash` and
+`/holdings` individually; bottom tab bar navigation (see Navigation);
+dashboard Home tab with a Cash & Safe-to-Spend card above a spending card,
+each with a "Manage" link; a one-question-per-screen onboarding wizard,
+starting with "which currency do you think in"; `/plan` (the user's spending
+plan, moved out of `/settings`) and `/settings` (now just category merging);
+phase-1 multi-currency base-currency work — every transaction/cash/
+liability/asset form has a currency picker, and every stored amount is
+labeled with its real currency instead of assumed.
 
-Email confirmation is currently OFF in Supabase (disabled for solo testing).
-It MUST be turned back on before the app has a public URL:
-Dashboard → Authentication → Sign In / Providers → Email → "Confirm email".
+**In flight / unfinished:**
+- Migrations 013 and 014 are written and printed but NOT confirmed run —
+  ask Marcus before assuming `transactions.currency`'s TWD default,
+  `user_profiles.preferred_currency`, or `user_rules.currency` exist live.
+- Cash, holdings, liabilities, assets, portfolio, reminders, and their
+  edit/detail sub-pages are still unstyled (see Design system).
+- Dashboard's per-category spending rows and vs-last-month delta line still
+  assume a single currency (`SPENDING_CURRENCY = "TWD"`), even though the
+  headline spending total and the safe-to-spend figure now handle mixed
+  currencies honestly. Known gap, not yet closed.
+
+## Deliberately out of scope
+
+- Any currency beyond TWD and USD.
+- A global display-currency toggle — a read-time lens over stored amounts,
+  freely changeable, never rewriting storage. What's built is BASE currency
+  only (what a stored number means, set at onboarding, near-immutable). The
+  toggle is a distinct later phase; don't build it unless explicitly asked.
+- A display-name/account/sign-out/reminders-toggle/delete-data settings
+  section.
 
 ## Working style
 
-Marcus is a beginner with the command line and databases but learns fast. Explain
-the why behind a design decision, not just the instruction. Give exact,
-copy-pasteable commands. Say when something is unverifiable rather than implying
-it was tested. You cannot log into the app, so UI verification is always his job.
+Marcus is a beginner with the command line and databases but learns fast.
+Explain the why behind a design decision, not just the instruction. Give
+exact, copy-pasteable commands. Say when something is unverifiable rather
+than implying it was tested. You cannot log into the app, so UI verification
+is always his job.
