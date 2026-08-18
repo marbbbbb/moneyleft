@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { computePortfolio, type Portfolio } from "@/lib/calculations/portfolio";
 import { PortfolioView } from "./portfolio-view";
@@ -21,14 +20,6 @@ export default async function PortfolioPage() {
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-4 sm:p-6">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold">Portfolio</h1>
-        <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-          <Link href="/dashboard" className="underline">
-            Dashboard
-          </Link>
-          <Link href="/holdings" className="underline">
-            Holdings
-          </Link>
-        </nav>
       </header>
 
       {loadError && (

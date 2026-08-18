@@ -3,11 +3,13 @@
 import { useActionState } from "react";
 import { saveSpendingRules } from "./actions";
 import { SPENDER_TYPES } from "@/lib/rules";
+import { currencyPlaceholder } from "@/lib/currencies";
 
 const inputClass =
   "rounded-md border border-gray-300 px-3 py-2 text-base dark:border-gray-700 dark:bg-gray-900";
 
 export type RulesDefaults = {
+  currency: string;
   monthlyCap: string;
   savingsTarget: string;
   category1: string;
@@ -18,11 +20,22 @@ export type RulesDefaults = {
   savingToward: string;
 };
 
-export function RulesForm({ defaults }: { defaults: RulesDefaults }) {
+export function RulesForm({
+  defaults,
+  redirectTo,
+}: {
+  defaults: RulesDefaults;
+  /** Where to send the user after a successful save. Defaults to /reminders (the settings-page behavior). */
+  redirectTo?: string;
+}) {
   const [state, action, pending] = useActionState(saveSpendingRules, {});
+  const currency = defaults.currency;
+  const amountPlaceholder = currencyPlaceholder(currency);
 
   return (
     <form action={action} className="flex flex-col gap-6">
+      {redirectTo && <input type="hidden" name="redirect_to" value={redirectTo} />}
+      <input type="hidden" name="currency" value={currency} />
       <section className="flex flex-col gap-3">
         <div>
           <h2 className="text-lg font-medium">The big picture</h2>
@@ -32,27 +45,27 @@ export function RulesForm({ defaults }: { defaults: RulesDefaults }) {
         </div>
 
         <label className="flex flex-col gap-1 text-sm">
-          What would you like to keep your total monthly spending under?
+          What would you like to keep your total monthly spending under? ({currency})
           <input
             name="monthly_cap"
             type="number"
             step="1"
             min="0"
             defaultValue={defaults.monthlyCap}
-            placeholder="e.g. 40000"
+            placeholder={`e.g. ${amountPlaceholder}`}
             className={inputClass}
           />
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          How much would you like to put aside each month?
+          How much would you like to put aside each month? ({currency})
           <input
             name="savings_target"
             type="number"
             step="1"
             min="0"
             defaultValue={defaults.savingsTarget}
-            placeholder="e.g. 15000"
+            placeholder={`e.g. ${amountPlaceholder}`}
             className={inputClass}
           />
           <span className="text-xs text-gray-500">
@@ -83,14 +96,14 @@ export function RulesForm({ defaults }: { defaults: RulesDefaults }) {
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Monthly limit
+            Monthly limit ({currency})
             <input
               name="category_limit_1"
               type="number"
               step="1"
               min="0"
               defaultValue={defaults.categoryLimit1}
-              placeholder="e.g. 6000"
+              placeholder={`e.g. ${amountPlaceholder}`}
               className={inputClass}
             />
           </label>
@@ -105,14 +118,14 @@ export function RulesForm({ defaults }: { defaults: RulesDefaults }) {
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Monthly limit
+            Monthly limit ({currency})
             <input
               name="category_limit_2"
               type="number"
               step="1"
               min="0"
               defaultValue={defaults.categoryLimit2}
-              placeholder="e.g. 5000"
+              placeholder={`e.g. ${amountPlaceholder}`}
               className={inputClass}
             />
           </label>
@@ -160,11 +173,10 @@ export function RulesForm({ defaults }: { defaults: RulesDefaults }) {
         disabled={pending}
         className="self-start rounded-md bg-black min-h-11 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
       >
-        {pending ? "Saving…" : "Save my rules"}
+        {pending ? "Saving…" : "Save my plan"}
       </button>
       <p className="text-xs text-gray-500">
-        Leave anything blank to skip it. Amounts are in whatever currency you
-        record transactions in.
+        Leave anything blank to skip it. Amounts above are in {currency}.
       </p>
     </form>
   );

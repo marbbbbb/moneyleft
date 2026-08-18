@@ -67,14 +67,6 @@ export default async function AssetsPage() {
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-4 sm:p-6">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold">Asset vault</h1>
-        <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-          <Link href="/" className="underline">
-            Net worth
-          </Link>
-          <Link href="/cash" className="underline">
-            Cash
-          </Link>
-        </nav>
       </header>
 
       <section>

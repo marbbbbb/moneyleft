@@ -2,9 +2,8 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { suggestExistingCategory } from "@/lib/categories";
-
-const inputClass =
-  "rounded-md border border-gray-300 px-3 py-2 text-base dark:border-gray-700 dark:bg-gray-900";
+import { SUPPORTED_CURRENCIES } from "@/lib/tickers";
+import { Button, Field, Input, Select } from "@/components/ui";
 
 type FormState = { error?: string };
 type FormAction = (prev: FormState, formData: FormData) => Promise<FormState>;
@@ -16,6 +15,7 @@ export type TransactionInitial = {
   category: string;
   note: string | null;
   type: "income" | "expense";
+  currency: string;
 };
 
 export function TransactionForm({
@@ -50,129 +50,136 @@ export function TransactionForm({
   const suggestion = suggestExistingCategory(category, categories);
 
   return (
-    <form ref={formRef} action={formAction} className="flex flex-col gap-3">
+    <form ref={formRef} action={formAction} className="flex flex-col gap-[var(--sp-4)]">
       {initial && <input type="hidden" name="id" value={initial.id} />}
       <input type="hidden" name="type" value={type} />
 
       {/* Expense / income toggle */}
-      <div className="flex overflow-hidden rounded-md border border-gray-300 text-sm dark:border-gray-700">
-        <button
+      <div className="flex gap-[var(--sp-2)]">
+        <Button
           type="button"
+          variant={type === "expense" ? "primary" : "secondary"}
           onClick={() => setType("expense")}
-          className={`min-h-11 flex-1 px-3 py-2 ${
-            type === "expense"
-              ? "bg-red-600 text-white"
-              : "text-gray-600 dark:text-gray-300"
-          }`}
+          className="flex-1"
         >
           − Expense
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant={type === "income" ? "primary" : "secondary"}
           onClick={() => setType("income")}
-          className={`min-h-11 flex-1 px-3 py-2 ${
-            type === "income"
-              ? "bg-green-600 text-white"
-              : "text-gray-600 dark:text-gray-300"
-          }`}
+          className="flex-1"
         >
           + Income
-        </button>
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm">
-          Date
-          <input
-            name="date"
-            type="date"
-            required
-            defaultValue={initial?.date}
-            className={inputClass}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Amount
-          <input
+      <div className="grid grid-cols-[1fr_auto] gap-[var(--sp-3)]">
+        <Field label="Amount" htmlFor="tx-amount">
+          <Input
+            id="tx-amount"
             name="amount"
             type="number"
             step="0.01"
             required
             defaultValue={initial?.amount}
             placeholder="0.00"
-            className={inputClass}
+            className="text-[length:var(--t-lg)]"
           />
-        </label>
+        </Field>
+
+        <Field label="Currency" htmlFor="tx-currency">
+          <Select id="tx-currency" name="currency" defaultValue={initial?.currency ?? "TWD"}>
+            {SUPPORTED_CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+        </Field>
       </div>
 
-      <label className="flex flex-col gap-1 text-sm">
-        Category
-        <input
-          name="category"
-          type="text"
-          required
-          list="tx-categories"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          placeholder="e.g. Groceries"
-          autoComplete="off"
-          className={inputClass}
-        />
-        <datalist id="tx-categories">
-          {categories.map((c) => (
-            <option key={c} value={c} />
-          ))}
-        </datalist>
-        {suggestion && (
-          <span className="text-xs text-amber-700 dark:text-amber-500">
-            Did you mean{" "}
-            <button
-              type="button"
-              onClick={() => setCategory(suggestion)}
-              className="font-medium underline"
-            >
-              {suggestion}
-            </button>
-            ?
-          </span>
-        )}
-      </label>
+      <div className="grid grid-cols-1 gap-[var(--sp-4)] sm:grid-cols-2">
+        <Field label="Date" htmlFor="tx-date">
+          <Input
+            id="tx-date"
+            name="date"
+            type="date"
+            required
+            defaultValue={initial?.date}
+          />
+        </Field>
 
-      <label className="flex flex-col gap-1 text-sm">
-        Note (optional)
-        <input
+        <Field label="Category" htmlFor="tx-category">
+          <Input
+            id="tx-category"
+            name="category"
+            type="text"
+            required
+            list="tx-categories"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            placeholder="e.g. Groceries"
+            autoComplete="off"
+          />
+          <datalist id="tx-categories">
+            {categories.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+          {suggestion && (
+            <p className="mt-[var(--sp-1)] text-[length:var(--t-xs)] text-[var(--text-muted)]">
+              Did you mean{" "}
+              <button
+                type="button"
+                onClick={() => setCategory(suggestion)}
+                className="font-medium text-[var(--accent)] underline"
+              >
+                {suggestion}
+              </button>
+              ?
+            </p>
+          )}
+        </Field>
+      </div>
+
+      <Field label="Note (optional)" htmlFor="tx-note">
+        <Input
+          id="tx-note"
           name="note"
           type="text"
           defaultValue={initial?.note ?? ""}
-          className={inputClass}
         />
-      </label>
+      </Field>
 
       {/* Recurrence — only when creating (managed from the list afterwards) */}
       {!isEdit && (
-        <label className="flex flex-col gap-1 text-sm">
-          Repeat
-          <select name="frequency" defaultValue="none" className={inputClass}>
+        <Field label="Repeat" htmlFor="tx-frequency">
+          <Select id="tx-frequency" name="frequency" defaultValue="none">
             <option value="none">One-off (don&apos;t repeat)</option>
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
             <option value="yearly">Yearly</option>
-          </select>
-          <span className="text-xs text-gray-500">
+          </Select>
+          <p className="mt-[var(--sp-1)] text-[length:var(--t-xs)] text-[var(--text-muted)]">
             Auto-creates each period (rent, subscriptions, salary). Manage under
             Recurring below.
-          </span>
-        </label>
+          </p>
+        </Field>
       )}
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && (
+        <p className="text-[length:var(--t-sm)] text-[var(--neg)]">{state.error}</p>
+      )}
 
-      <button
+      <Button
+        type="submit"
+        variant="primary"
         disabled={pending}
-        className="min-h-11 self-start rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+        className="self-start disabled:opacity-50"
       >
         {pending ? "Saving…" : (submitLabel ?? "Add transaction")}
-      </button>
+      </Button>
     </form>
   );
 }

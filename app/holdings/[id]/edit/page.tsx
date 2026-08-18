@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { updateHolding } from "../../actions";
@@ -26,11 +25,6 @@ export default async function EditHoldingPage({
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-4 sm:p-6">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold">Edit holding</h1>
-        <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-          <Link href="/holdings" className="underline">
-            Back to holdings
-          </Link>
-        </nav>
       </header>
 
       <HoldingForm

@@ -43,14 +43,6 @@ export default async function RemindersPage() {
             Gentle nudges based on the rules you set.
           </p>
         </div>
-        <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-          <Link href="/" className="underline">
-            Net worth
-          </Link>
-          <Link href="/settings" className="underline">
-            Settings
-          </Link>
-        </nav>
       </header>
 
       {/* Rule status — computed live, costs nothing */}
@@ -62,8 +54,8 @@ export default async function RemindersPage() {
         {!evalError && evaluations.length === 0 && (
           <p className="text-sm text-gray-500">
             No rules yet —{" "}
-            <Link href="/settings" className="underline">
-              set a few in Settings
+            <Link href="/plan" className="underline">
+              set a few in your plan
             </Link>
             .
           </p>

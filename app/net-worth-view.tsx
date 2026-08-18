@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import type { NetWorth } from "@/lib/calculations/networth";
 import type { SnapshotPoint } from "@/lib/calculations/snapshots";
 import { LiquidIlliquidPie } from "./liquid-illiquid-pie";
@@ -119,95 +120,126 @@ export function NetWorthView({
 
       {/* Liquid / illiquid / liabilities breakdown */}
       <div className="grid gap-4 sm:grid-cols-3">
-        {/* LIQUID — prominent, populated */}
+        {/* CASH & INVESTMENTS — prominent, populated. The box itself isn't a
+            link (it's two things); each sub-line links out individually. */}
         <section className="rounded-lg border border-gray-200 p-5 dark:border-gray-800">
           <div className="flex items-baseline justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-green-700 dark:text-green-500">
-              Liquid
+              Cash &amp; Investments
             </h2>
             <span className="text-xs text-gray-400">cash + stocks</span>
           </div>
           <p className="mt-2 text-2xl font-semibold">
             {money(netWorth.liquid[display], display)}
           </p>
-          <dl className="mt-4 flex flex-col gap-2 text-sm">
-            <div className="flex justify-between">
+          <dl className="mt-4 flex flex-col gap-1 text-sm">
+            <Link
+              href="/cash"
+              className="-mx-2 flex items-center justify-between rounded-[var(--r-sm)] px-2 py-1 transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+            >
               <dt className="text-gray-500">Cash accounts</dt>
-              <dd>{money(netWorth.cash[display], display)}</dd>
-            </div>
-            <div className="flex justify-between">
+              <dd className="flex items-center gap-1">
+                {money(netWorth.cash[display], display)}
+                <span className="text-[var(--text-subtle)]" aria-hidden="true">
+                  →
+                </span>
+              </dd>
+            </Link>
+            <Link
+              href="/holdings"
+              className="-mx-2 flex items-center justify-between rounded-[var(--r-sm)] px-2 py-1 transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+            >
               <dt className="text-gray-500">Stock holdings</dt>
-              <dd>{money(netWorth.holdings[display], display)}</dd>
-            </div>
+              <dd className="flex items-center gap-1">
+                {money(netWorth.holdings[display], display)}
+                <span className="text-[var(--text-subtle)]" aria-hidden="true">
+                  →
+                </span>
+              </dd>
+            </Link>
           </dl>
         </section>
 
-        {/* ILLIQUID — labeled placeholder for the upcoming asset vault */}
-        <section className="rounded-lg border border-dashed border-gray-300 p-5 dark:border-gray-700">
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-              Illiquid
-            </h2>
-            <span className="text-xs text-gray-400">assets</span>
-          </div>
-          <p
-            className={`mt-2 text-2xl font-semibold ${
-              netWorth.illiquid[display] > 0 ? "" : "text-gray-400"
-            }`}
-          >
-            {money(netWorth.illiquid[display], display)}
-          </p>
-          {netWorth.assetCost[display] > 0 ? (
+        {/* ASSETS — links to the asset vault */}
+        <Link href="/assets" className="block">
+          <section className="rounded-lg border border-dashed border-gray-300 p-5 transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] dark:border-gray-700">
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                Assets
+              </h2>
+              <span className="flex items-center gap-1">
+                <span className="text-xs text-gray-400">assets</span>
+                <span className="text-[var(--text-subtle)]" aria-hidden="true">
+                  →
+                </span>
+              </span>
+            </div>
             <p
-              className={`mt-1 text-sm ${
-                netWorth.assetGain[display] >= 0
-                  ? "text-green-600"
-                  : "text-red-600"
+              className={`mt-2 text-2xl font-semibold ${
+                netWorth.illiquid[display] > 0 ? "" : "text-gray-400"
               }`}
             >
-              {netWorth.assetGain[display] >= 0 ? "+" : "−"}
-              {money(Math.abs(netWorth.assetGain[display]), display)}
-              {netWorth.assetGainPct[display] !== null &&
-                ` (${netWorth.assetGain[display] >= 0 ? "+" : "−"}${Math.abs(
-                  netWorth.assetGainPct[display]!,
-                ).toFixed(1)}%)`}{" "}
-              <span className="text-gray-500">unrealized vs purchase</span>
+              {money(netWorth.illiquid[display], display)}
             </p>
-          ) : (
-            <p className="mt-4 text-sm text-gray-500">
-              Add assets in the vault to see illiquid net worth and unrealized
-              gain here.
-            </p>
-          )}
-        </section>
+            {netWorth.assetCost[display] > 0 ? (
+              <p
+                className={`mt-1 text-sm ${
+                  netWorth.assetGain[display] >= 0
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
+              >
+                {netWorth.assetGain[display] >= 0 ? "+" : "−"}
+                {money(Math.abs(netWorth.assetGain[display]), display)}
+                {netWorth.assetGainPct[display] !== null &&
+                  ` (${netWorth.assetGain[display] >= 0 ? "+" : "−"}${Math.abs(
+                    netWorth.assetGainPct[display]!,
+                  ).toFixed(1)}%)`}{" "}
+                <span className="text-gray-500">unrealized vs purchase</span>
+              </p>
+            ) : (
+              <p className="mt-4 text-sm text-gray-500">
+                Add assets in the vault to see illiquid net worth and unrealized
+                gain here.
+              </p>
+            )}
+          </section>
+        </Link>
 
-        {/* LIABILITIES — subtracted from net worth */}
-        <section className="rounded-lg border border-gray-200 p-5 dark:border-gray-800">
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-red-700 dark:text-red-500">
-              Liabilities
-            </h2>
-            <span className="text-xs text-gray-400">debts</span>
-          </div>
-          <p
-            className={`mt-2 text-2xl font-semibold ${
-              netWorth.liabilities[display] > 0 ? "text-red-600" : "text-gray-400"
-            }`}
-          >
-            {netWorth.liabilities[display] > 0 ? "−" : ""}
-            {money(netWorth.liabilities[display], display)}
-          </p>
-          {netWorth.liabilities[display] > 0 ? (
-            <p className="mt-1 text-sm text-gray-500">
-              Subtracted from your net worth.
+        {/* DEBTS — links to liabilities, subtracted from net worth */}
+        <Link href="/liabilities" className="block">
+          <section className="rounded-lg border border-gray-200 p-5 transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] dark:border-gray-800">
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-red-700 dark:text-red-500">
+                Debts
+              </h2>
+              <span className="flex items-center gap-1">
+                <span className="text-xs text-gray-400">debts</span>
+                <span className="text-[var(--text-subtle)]" aria-hidden="true">
+                  →
+                </span>
+              </span>
+            </div>
+            <p
+              className={`mt-2 text-2xl font-semibold ${
+                netWorth.liabilities[display] > 0 ? "text-red-600" : "text-gray-400"
+              }`}
+            >
+              {netWorth.liabilities[display] > 0 ? "−" : ""}
+              {money(netWorth.liabilities[display], display)}
             </p>
-          ) : (
-            <p className="mt-4 text-sm text-gray-500">
-              No debts. Add a mortgage, loan, or card balance on the{" "}
-              Liabilities page.
-            </p>
-          )}
-        </section>
+            {netWorth.liabilities[display] > 0 ? (
+              <p className="mt-1 text-sm text-gray-500">
+                Subtracted from your net worth.
+              </p>
+            ) : (
+              <p className="mt-4 text-sm text-gray-500">
+                No debts. Add a mortgage, loan, or card balance on the{" "}
+                Liabilities page.
+              </p>
+            )}
+          </section>
+        </Link>
       </div>
     </>
   );

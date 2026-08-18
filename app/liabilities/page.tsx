@@ -45,14 +45,6 @@ export default async function LiabilitiesPage() {
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-4 sm:p-6">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold">Liabilities</h1>
-        <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-          <Link href="/" className="underline">
-            Net worth
-          </Link>
-          <Link href="/cash" className="underline">
-            Cash
-          </Link>
-        </nav>
       </header>
 
       <section>
@@ -72,7 +64,9 @@ export default async function LiabilitiesPage() {
         )}
 
         {!error && liabilities.length === 0 && (
-          <p className="text-sm text-gray-500">No debts yet.</p>
+          <p className="text-sm text-gray-500">
+            No debts yet — add one above.
+          </p>
         )}
 
         <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800">

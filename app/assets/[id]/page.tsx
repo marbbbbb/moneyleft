@@ -104,12 +104,6 @@ export default async function AssetDetailPage({
           <Link href={`/assets/${asset.id}/edit`} className="underline">
             Edit
           </Link>
-          <Link href="/assets" className="underline">
-            All assets
-          </Link>
-          <Link href="/" className="underline">
-            Net worth
-          </Link>
         </nav>
       </header>
 

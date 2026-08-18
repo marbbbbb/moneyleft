@@ -1,6 +1,13 @@
 // Pure ticker helpers — no server-only imports, safe in Client Components.
 
-export const SUPPORTED_CURRENCIES = ["USD", "TWD"] as const;
+import { CURRENCY_CODES } from "./currencies";
+
+// Derived from lib/currencies.ts, the single place a supported currency is
+// declared. Kept as its own export (rather than switching every consumer over
+// to lib/currencies.ts) so none of the existing currency pickers/validators
+// across cash, holdings, liabilities, assets, and transactions need to change
+// — same values, same shape, just sourced from one place now.
+export const SUPPORTED_CURRENCIES = CURRENCY_CODES;
 export type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
 
 /**

@@ -28,17 +28,6 @@ export default async function HoldingsPage() {
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-4 sm:p-6">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold">Holdings</h1>
-        <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-          <Link href="/dashboard" className="underline">
-            Dashboard
-          </Link>
-          <Link href="/transactions" className="underline">
-            Transactions
-          </Link>
-          <Link href="/portfolio" className="underline">
-            Portfolio
-          </Link>
-        </nav>
       </header>
 
       <section>
@@ -58,7 +47,9 @@ export default async function HoldingsPage() {
         )}
 
         {!error && holdings.length === 0 && (
-          <p className="text-sm text-gray-500">No holdings yet.</p>
+          <p className="text-sm text-gray-500">
+            No holdings yet — add one above.
+          </p>
         )}
 
         <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800">

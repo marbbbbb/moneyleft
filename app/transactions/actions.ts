@@ -5,11 +5,19 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { runSpendingCheck } from "@/app/settings/actions";
 import { normalizeCategory } from "@/lib/categories";
+import { SUPPORTED_CURRENCIES } from "@/lib/tickers";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type ActionState = { error?: string };
 
 const FREQUENCIES = ["weekly", "monthly", "yearly"];
+
+// Matches the validation cash-form's action already does for this same field.
+function parseCurrency(formData: FormData): string | null {
+  const currency = String(formData.get("currency") ?? "").trim().toUpperCase();
+  if (!(SUPPORTED_CURRENCIES as readonly string[]).includes(currency)) return null;
+  return currency;
+}
 
 // Distinct categories the user already uses (one display spelling per case-set).
 async function fetchCategories(supabase: SupabaseClient): Promise<string[]> {
@@ -40,11 +48,13 @@ export async function addTransaction(
   const note = String(formData.get("note") ?? "").trim();
   const type = formData.get("type") === "income" ? "income" : "expense";
   const frequency = String(formData.get("frequency") ?? "none");
+  const currency = parseCurrency(formData);
 
   if (!date) return { error: "Date is required." };
   if (!Number.isFinite(amount) || amount <= 0)
     return { error: "Amount must be a positive number." };
   if (!rawCategory.trim()) return { error: "Category is required." };
+  if (!currency) return { error: "Unsupported currency." };
 
   const supabase = await createClient();
   const category = normalizeCategory(rawCategory, await fetchCategories(supabase));
@@ -55,6 +65,7 @@ export async function addTransaction(
     category,
     note: note || null,
     type,
+    currency,
   });
   if (error) return { error: error.message };
 
@@ -66,6 +77,7 @@ export async function addTransaction(
       category,
       note: note || null,
       type,
+      currency,
       frequency,
       next_run: advanceDate(date, frequency),
     });
@@ -98,18 +110,20 @@ export async function updateTransaction(
   const rawCategory = String(formData.get("category") ?? "");
   const note = String(formData.get("note") ?? "").trim();
   const type = formData.get("type") === "income" ? "income" : "expense";
+  const currency = parseCurrency(formData);
 
   if (!date) return { error: "Date is required." };
   if (!Number.isFinite(amount) || amount <= 0)
     return { error: "Amount must be a positive number." };
   if (!rawCategory.trim()) return { error: "Category is required." };
+  if (!currency) return { error: "Unsupported currency." };
 
   const supabase = await createClient();
   const category = normalizeCategory(rawCategory, await fetchCategories(supabase));
 
   const { error } = await supabase
     .from("transactions")
-    .update({ date, amount: Math.abs(amount), category, note: note || null, type })
+    .update({ date, amount: Math.abs(amount), category, note: note || null, type, currency })
     .eq("id", id);
   if (error) return { error: error.message };
 

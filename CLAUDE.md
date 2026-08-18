@@ -28,8 +28,7 @@ Mobile-first. Single user for now (Marcus).
 
 Flat in `supabase/`, not `supabase/migrations/`. Numbered sequentially,
 002 through 014 (highest file present: `014_base_currency.sql`).
-**Last CONFIRMED applied: 012.** 013 and 014 are written and printed but
-whether Marcus has run them is unconfirmed — see Current state.
+**Last CONFIRMED applied: 014.** Schema and code are in sync.
 
 Never run, apply, or push a migration. PRINT the SQL in one copy-paste block;
 Marcus runs it in the Supabase SQL Editor by hand.
@@ -58,8 +57,8 @@ does: plain `text not null default '...'`, no enum/CHECK, ever).
   NEVER converted in storage. `transactions`, `cash_accounts`, `assets`,
   `holdings`, `liabilities` each carry their own `currency` column;
   `user_rules.currency` and `user_profiles.preferred_currency` do too as of
-  013/014 (unconfirmed live — see Migrations). Conversion only ever happens
-  at display time (see FX rate access below).
+  013/014 (confirmed live). Conversion only ever happens at display time
+  (see FX rate access below).
 - `lib/amortization.ts` is pure math — no Supabase imports, no React, no
   side effects. Keep it that way.
 - Liability totals flow through `lib/calculations/networth.ts`, the single
@@ -196,9 +195,6 @@ liability/asset form has a currency picker, and every stored amount is
 labeled with its real currency instead of assumed.
 
 **In flight / unfinished:**
-- Migrations 013 and 014 are written and printed but NOT confirmed run —
-  ask Marcus before assuming `transactions.currency`'s TWD default,
-  `user_profiles.preferred_currency`, or `user_rules.currency` exist live.
 - Cash, holdings, liabilities, assets, portfolio, reminders, and their
   edit/detail sub-pages are still unstyled (see Design system).
 - Dashboard's per-category spending rows and vs-last-month delta line still

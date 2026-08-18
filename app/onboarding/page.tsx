@@ -1,25 +1,22 @@
+import { redirect } from "next/navigation";
 import { loadRulesDefaults } from "../settings/defaults";
-import { RulesForm } from "../settings/rules-form";
+import { OnboardingWizard } from "./onboarding-wizard";
 
 export const dynamic = "force-dynamic";
 
-// First-run experience. Same form as /settings, wrapped in a welcome. Home
-// redirects here until onboarding_completed_at is set.
+// First-run experience: a one-question-per-screen wizard (onboarding-wizard.tsx)
+// over the same save action /settings uses. Dashboard redirects here until
+// onboarding_completed_at is set; the wizard's own welcome step replaces what
+// used to be static copy here.
 export default async function OnboardingPage() {
-  const { defaults } = await loadRulesDefaults();
+  const { defaults, completed } = await loadRulesDefaults();
+
+  // Already done this once — don't make a returning user sit through it again.
+  if (completed) redirect("/dashboard");
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-4 sm:p-6">
-      <header>
-        <h1 className="text-2xl font-semibold">Welcome — let&apos;s set a few rules</h1>
-        <p className="mt-2 text-sm text-gray-500">
-          A handful of quick questions so the app can gently keep an eye on things
-          for you. There are no wrong answers, nothing here is a commitment, and
-          you can change or skip any of it later.
-        </p>
-      </header>
-
-      <RulesForm defaults={defaults} />
+    <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center p-[var(--sp-4)] sm:p-[var(--sp-6)]">
+      <OnboardingWizard defaults={defaults} />
     </main>
   );
 }

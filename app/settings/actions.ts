@@ -8,8 +8,18 @@ import { evaluateRules } from "@/lib/calculations/rules";
 import { monthBounds } from "@/lib/calculations/spending";
 import { generateReminder } from "@/lib/reminders/engine";
 import { cleanCategory, normalizeCategory } from "@/lib/categories";
+import { CURRENCY_CODES } from "@/lib/currencies";
 
 type SaveState = { error?: string; ok?: boolean };
+
+// Currency is always driven by a controlled <select> populated from
+// CURRENCY_CODES (wizard) or round-tripped as a hidden field (settings), so a
+// real user can never submit an invalid value — this is a safety net, not a
+// blocking validation path like the amount checks below.
+function parseCurrency(formData: FormData): string {
+  const raw = String(formData.get("currency") ?? "").trim().toUpperCase();
+  return CURRENCY_CODES.includes(raw) ? raw : "TWD";
+}
 
 // Reads an optional positive number from the form; blank => null.
 function optionalAmount(formData: FormData, key: string): number | null | "bad" {
@@ -24,6 +34,7 @@ export async function saveSpendingRules(
   _prev: SaveState,
   formData: FormData,
 ): Promise<SaveState> {
+  const currency = parseCurrency(formData);
   const monthlyCap = optionalAmount(formData, "monthly_cap");
   const savingsTarget = optionalAmount(formData, "savings_target");
   let cat1 = String(formData.get("category_1") ?? "").trim();
@@ -76,6 +87,7 @@ export async function saveSpendingRules(
       rule_type: RULE_TYPES.monthlyCap,
       description: "Keep total monthly spending under this",
       amount: monthlyCap,
+      currency,
       period: "monthly",
     });
   }
@@ -84,6 +96,7 @@ export async function saveSpendingRules(
       rule_type: RULE_TYPES.savingsTarget,
       description: "Put aside at least this much each month",
       amount: savingsTarget,
+      currency,
       period: "monthly",
     });
   }
@@ -97,6 +110,7 @@ export async function saveSpendingRules(
         description: `Watching ${cat}`,
         category: cat,
         amount: limit,
+        currency,
         period: "monthly",
       });
     }
@@ -111,6 +125,7 @@ export async function saveSpendingRules(
   const { error: profileError } = await supabase.from("user_profiles").upsert(
     {
       user_id: (await supabase.auth.getUser()).data.user?.id,
+      preferred_currency: currency,
       onboarding: {
         spender_type: spenderType || null,
         saving_toward: savingToward || null,
@@ -121,10 +136,18 @@ export async function saveSpendingRules(
   );
   if (profileError) return { error: profileError.message };
 
+  // Allowlisted so a form field never becomes an open redirect. Onboarding
+  // sends "/dashboard" via a hidden field; the settings page sends nothing and
+  // keeps the original "/reminders" destination.
+  const requestedRedirect = String(formData.get("redirect_to") ?? "");
+  const redirectTarget = ["/dashboard", "/reminders"].includes(requestedRedirect)
+    ? requestedRedirect
+    : "/reminders";
+
   revalidatePath("/settings");
   revalidatePath("/reminders");
   revalidatePath("/");
-  redirect("/reminders");
+  redirect(redirectTarget);
 }
 
 type CheckState = {
@@ -153,7 +176,7 @@ export async function runSpendingCheck(): Promise<CheckState> {
   }
 
   if (evaluations.length === 0) {
-    return { ok: true, note: "No rules set yet — add some in Settings." };
+    return { ok: true, note: "No rules set yet — add some in your plan." };
   }
 
   const broken = evaluations.filter((e) => e.broken);

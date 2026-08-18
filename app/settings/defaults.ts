@@ -9,17 +9,23 @@ const asText = (n: number | string | null | undefined) =>
 export async function loadRulesDefaults(): Promise<{
   defaults: RulesDefaults;
   completed: boolean;
+  // The savings-target rule's OWN stored currency — distinct from
+  // defaults.currency (preferred_currency, the base-currency signal used to
+  // prefill/label the form). Read by the dashboard's safe-to-spend block,
+  // which needs to know what currency an EXISTING rule was actually saved in,
+  // not what the user's current preference is.
+  savingsTargetCurrency: string | null;
 }> {
   const supabase = await createClient();
 
   const [{ data: ruleRows }, { data: profile }] = await Promise.all([
     supabase
       .from("user_rules")
-      .select("id, rule_type, description, category, amount, period, is_active")
+      .select("id, rule_type, description, category, amount, period, is_active, currency")
       .order("created_at", { ascending: true }),
     supabase
       .from("user_profiles")
-      .select("onboarding, onboarding_completed_at")
+      .select("onboarding, onboarding_completed_at, preferred_currency")
       .maybeSingle(),
   ]);
 
@@ -35,7 +41,9 @@ export async function loadRulesDefaults(): Promise<{
 
   return {
     completed: Boolean(profile?.onboarding_completed_at),
+    savingsTargetCurrency: savings?.currency ?? null,
     defaults: {
+      currency: profile?.preferred_currency ?? "TWD",
       monthlyCap: asText(cap?.amount),
       savingsTarget: asText(savings?.amount),
       category1: categories[0]?.category ?? "",

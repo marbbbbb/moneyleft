@@ -7,6 +7,7 @@ import {
   materializeRecurring,
 } from "./actions";
 import { TransactionForm } from "./transaction-form";
+import { Card, PageHeader, Button, Money } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ type Transaction = {
   category: string;
   note: string | null;
   type: "income" | "expense";
+  currency: string;
 };
 
 type Recurring = {
@@ -26,6 +28,7 @@ type Recurring = {
   type: "income" | "expense";
   frequency: string;
   next_run: string;
+  currency: string;
 };
 
 export default async function TransactionsPage() {
@@ -41,12 +44,12 @@ export default async function TransactionsPage() {
   const [{ data, error }, { data: recurringRows }] = await Promise.all([
     supabase
       .from("transactions")
-      .select("id, date, amount, category, note, type")
+      .select("id, date, amount, category, note, type, currency")
       .order("date", { ascending: false })
       .order("created_at", { ascending: false }),
     supabase
       .from("recurring_transactions")
-      .select("id, amount, category, type, frequency, next_run")
+      .select("id, amount, category, type, frequency, next_run, currency")
       .eq("is_active", true)
       .order("next_run", { ascending: true }),
   ]);
@@ -65,47 +68,49 @@ export default async function TransactionsPage() {
   ];
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-4 sm:p-6">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold">Transactions</h1>
-        <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-          <Link href="/dashboard" className="underline">
-            Dashboard
-          </Link>
-          <Link href="/holdings" className="underline">
-            Holdings
-          </Link>
-        </nav>
-      </header>
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-[var(--sp-6)] p-[var(--sp-4)] sm:p-[var(--sp-6)]">
+      <PageHeader title="Transactions" />
 
-      <section>
-        <h2 className="mb-3 text-lg font-medium">Add a transaction</h2>
+      <Card>
+        <h2 className="mb-[var(--sp-3)] text-[length:var(--t-base)] font-medium text-[var(--text)]">
+          Add a transaction
+        </h2>
         <TransactionForm action={addTransaction} categories={categories} />
-      </section>
+      </Card>
 
       {recurring.length > 0 && (
         <section>
-          <h2 className="mb-3 text-lg font-medium">
+          <h2 className="mb-[var(--sp-2)] text-[length:var(--t-sm)] text-[var(--text-muted)]">
             Recurring ({recurring.length})
           </h2>
-          <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800">
+          <ul className="flex flex-col divide-y divide-[var(--border)]">
             {recurring.map((r) => (
-              <li key={r.id} className="flex items-center justify-between gap-3 py-3">
+              <li
+                key={r.id}
+                className="flex items-center justify-between gap-[var(--sp-3)] py-[var(--sp-3)]"
+              >
                 <div className="flex min-w-0 flex-col">
-                  <span className="truncate font-medium">
-                    {r.category} · {r.type === "income" ? "+" : "−"}
-                    {r.amount.toFixed(2)}
+                  <span className="truncate text-[length:var(--t-base)] text-[var(--text)]">
+                    {r.category}
                   </span>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-[length:var(--t-xs)] text-[var(--text-muted)]">
                     {r.frequency} · next {r.next_run}
                   </span>
                 </div>
-                <form action={cancelRecurring}>
-                  <input type="hidden" name="id" value={r.id} />
-                  <button className="min-h-11 shrink-0 px-1 text-sm text-red-600 hover:underline">
-                    Cancel
-                  </button>
-                </form>
+                <div className="flex shrink-0 items-center gap-[var(--sp-3)]">
+                  <Money
+                    amount={r.amount}
+                    currency={r.currency}
+                    size="sm"
+                    className={r.type === "income" ? "[--text:var(--pos)]" : undefined}
+                  />
+                  <form action={cancelRecurring}>
+                    <input type="hidden" name="id" value={r.id} />
+                    <Button type="submit" variant="danger">
+                      Cancel
+                    </Button>
+                  </form>
+                </div>
               </li>
             ))}
           </ul>
@@ -113,50 +118,54 @@ export default async function TransactionsPage() {
       )}
 
       <section>
-        <h2 className="mb-3 text-lg font-medium">
+        <h2 className="mb-[var(--sp-2)] text-[length:var(--t-sm)] text-[var(--text-muted)]">
           Your transactions ({transactions.length})
         </h2>
 
         {error && (
-          <p className="text-sm text-red-600">
+          <p className="text-[length:var(--t-sm)] text-[var(--neg)]">
             Couldn&apos;t load transactions: {error.message}
           </p>
         )}
 
         {!error && transactions.length === 0 && (
-          <p className="text-sm text-gray-500">No transactions yet.</p>
+          <p className="py-[var(--sp-6)] text-center text-[length:var(--t-sm)] text-[var(--text-muted)]">
+            No transactions yet.
+          </p>
         )}
 
-        <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800">
+        <ul className="flex flex-col divide-y divide-[var(--border)]">
           {transactions.map((t) => (
-            <li key={t.id} className="flex items-center justify-between gap-3 py-3">
+            <li
+              key={t.id}
+              className="flex items-center justify-between gap-[var(--sp-3)] py-[var(--sp-3)]"
+            >
               <div className="flex min-w-0 flex-col">
-                <span className="truncate font-medium">{t.category}</span>
-                <span className="text-sm text-gray-500">
+                <span className="truncate text-[length:var(--t-base)] text-[var(--text)]">
+                  {t.category}
+                </span>
+                <span className="text-[length:var(--t-xs)] text-[var(--text-muted)]">
                   {t.date}
-                  {t.note ? ` — ${t.note}` : ""}
+                  {t.note ? ` · ${t.note}` : ""}
                 </span>
               </div>
-              <div className="flex shrink-0 items-center gap-3">
-                <span
-                  className={`font-medium ${
-                    t.type === "income" ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {t.type === "income" ? "+" : "−"}
-                  {t.amount.toFixed(2)}
-                </span>
+              <div className="flex shrink-0 items-center gap-[var(--sp-3)]">
+                <Money
+                  amount={t.amount}
+                  currency={t.currency}
+                  className={t.type === "income" ? "[--text:var(--pos)]" : undefined}
+                />
                 <Link
                   href={`/transactions/${t.id}/edit`}
-                  className="min-h-11 px-1 text-sm text-gray-500 hover:underline"
+                  className="text-[length:var(--t-xs)] text-[var(--text-muted)]"
                 >
                   Edit
                 </Link>
                 <form action={deleteTransaction}>
                   <input type="hidden" name="id" value={t.id} />
-                  <button className="min-h-11 px-1 text-sm text-red-600 hover:underline">
+                  <Button type="submit" variant="danger">
                     Delete
-                  </button>
+                  </Button>
                 </form>
               </div>
             </li>

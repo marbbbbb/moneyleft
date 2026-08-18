@@ -28,6 +28,7 @@ export type UserRule = {
   amount: number | null;
   period: string | null;
   is_active: boolean;
+  currency?: string;
 };
 
 export function formatAmount(n: number): string {
