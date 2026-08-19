@@ -48,6 +48,19 @@ export function NetWorthView({
     ? currency
     : netWorth.supportedCurrencies[0];
 
+  // Cash (and therefore Cash & Investments, liquid, and total) is now the
+  // same running balance the dashboard's "Money left" shows, not a raw
+  // cash_accounts sum — see computeRunningCash. Two things follow from that:
+  // a conversion may have happened to produce it, which needs the same
+  // "Converted at" transparency the dashboard already gives; and if
+  // cash_confirmed_at itself was unavailable, this is the plain cash total
+  // with no income/expense adjustment, which the reader should know rather
+  // than silently trusting it as the full running balance.
+  const cashRateNote = netWorth.cashRateNotes[display]?.length
+    ? `Converted at ${netWorth.cashRateNotes[display].join(", ")}.`
+    : null;
+  const cashConfirmedUnavailable = netWorth.cashConfirmedAt === null;
+
   return (
     <>
       {/* Headline total */}
@@ -129,6 +142,14 @@ export function NetWorthView({
                 </span>
               </dd>
             </Link>
+            {cashConfirmedUnavailable ? (
+              <p className="text-xs text-gray-400">
+                Showing account balances only — we don&apos;t know when you
+                last confirmed them.
+              </p>
+            ) : (
+              cashRateNote && <p className="text-xs text-gray-400">{cashRateNote}</p>
+            )}
             <Link
               href="/holdings"
               className="-mx-2 flex items-center justify-between rounded-[var(--r-sm)] px-2 py-1 transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getMonthOverMonth, type MonthOverMonth } from "@/lib/calculations/spending";
-import { getPriceProvider } from "@/lib/prices";
+import { computeRunningCash, type RunningCash } from "@/lib/calculations/networth";
 import { Card, PageHeader, Money } from "@/components/ui";
 import { CategoryDisclosure } from "./category-disclosure";
 
@@ -20,32 +20,6 @@ function formatMonth(startYmd: string): string {
     month: "long",
     year: "numeric",
   });
-}
-
-// Converts a same-single-currency amount into TWD via the same live FX
-// provider the net-worth page uses, WITHOUT pulling in its full
-// computeNetWorth pipeline (portfolio prices, assets, liabilities) just for
-// one rate lookup.
-async function convertToTWD(
-  amount: number,
-  currency: string,
-): Promise<{ value: number | null; rate: number | null }> {
-  if (currency === "TWD") return { value: amount, rate: null };
-  const rate = await getPriceProvider().getFxRate(currency, "TWD");
-  return { value: rate != null ? amount * rate : null, rate };
-}
-
-// Total amount and the single currency it's in, if there is one - the same
-// "single currency or mixed" determination used everywhere in this app that
-// sums money, just factored out since Money left now needs it for two pools
-// (income, expense) instead of one.
-function summarizeRows(rows: { amount: number; currency: string }[]) {
-  const currencies = new Set(rows.map((r) => r.currency));
-  return {
-    total: rows.reduce((sum, r) => sum + Number(r.amount), 0),
-    mixed: currencies.size > 1,
-    currency: currencies.size === 1 ? [...currencies][0] : null,
-  };
 }
 
 export default async function DashboardPage() {
@@ -106,98 +80,34 @@ export default async function DashboardPage() {
   const cashCurrency = distinctCash.size === 1 ? [...distinctCash][0] : null;
   const cashTotal = cash.reduce((sum, c) => sum + Number(c.balance), 0);
 
-  // cash_confirmed_at lives on user_profiles (one row per user, not per cash
-  // account — transactions aren't linked to individual accounts, so a
-  // per-account date would be unattributable). Wrapped defensively: until
-  // migration 015 actually runs, this column doesn't exist yet and the
-  // select fails with a schema-cache error, not a normal one — degrade to
-  // "unavailable" rather than crashing the page.
-  let cashConfirmedAt: string | null = null;
+  // Money left = the same running balance (cash + income − expenses since
+  // cash_confirmed_at, resolved into TWD) that now feeds the net worth
+  // page's Cash & Investments too — see computeRunningCash, the one shared
+  // implementation. Only TWD is requested since that's the only currency
+  // this card ever displays. Degrade gracefully if the call fails outright
+  // (e.g. a genuine cash_accounts fetch error) rather than crashing the page.
+  let running: RunningCash | null = null;
   try {
-    const { data: profileRow, error: profileErr } = await supabase
-      .from("user_profiles")
-      .select("cash_confirmed_at")
-      .maybeSingle();
-    if (!profileErr) {
-      cashConfirmedAt = (profileRow?.cash_confirmed_at as string | null) ?? null;
-    }
+    running = await computeRunningCash(supabase, ["TWD"]);
   } catch {
-    cashConfirmedAt = null;
+    running = null;
   }
-  // transactions.date has no time-of-day, so "on or after" is compared at day
-  // granularity — same plain "YYYY-MM-DD" string comparison every other
-  // transactions.date range query in this app already uses (see
-  // getMonthOverMonth), not timezone-aware Date math.
-  const confirmedDate = cashConfirmedAt ? cashConfirmedAt.slice(0, 10) : null;
-  const confirmedDateLabel = cashConfirmedAt
-    ? new Date(cashConfirmedAt).toLocaleDateString("en-US", {
+  // null (rather than the cash-only fallback computeRunningCash returns
+  // when confirmedAt is unavailable) specifically when there's no confirmed
+  // date to show the figure against — matches this card's own "unavailable"
+  // messaging, unchanged from before this refactor.
+  const moneyLeft = running?.confirmedAt ? running.values["TWD"] : null;
+  const moneyLeftFxNote =
+    running?.confirmedAt && running.rateNotes["TWD"]?.length
+      ? `Converted at ${running.rateNotes["TWD"].join(", ")}.`
+      : null;
+  const confirmedDateLabel = running?.confirmedAt
+    ? new Date(running.confirmedAt).toLocaleDateString("en-US", {
         month: "long",
         day: "numeric",
         year: "numeric",
       })
     : null;
-
-  // Money left = cash + income since cash_confirmed_at − expenses since
-  // cash_confirmed_at, resolved into TWD. Inclusive of the confirmed date;
-  // no upper bound, so future-dated transactions count too. Only computed
-  // when cash and each transaction pool (income, expense) are themselves a
-  // single currency — otherwise combining would silently mix currencies,
-  // which this app never does. Any side that isn't already TWD is converted
-  // via the live FX rate (see convertToTWD) rather than assumed.
-  let moneyLeft: number | null = null;
-  let moneyLeftFxNote: string | null = null;
-  let moneyLeftMixedCurrency = false;
-
-  if (confirmedDate && cash.length > 0 && cashCurrency && !cashMixed) {
-    const [{ data: incomeRows }, { data: expenseRows }] = await Promise.all([
-      supabase
-        .from("transactions")
-        .select("amount, currency")
-        .eq("type", "income")
-        .gte("date", confirmedDate),
-      supabase
-        .from("transactions")
-        .select("amount, currency")
-        .eq("type", "expense")
-        .gte("date", confirmedDate),
-    ]);
-
-    const income = summarizeRows((incomeRows ?? []) as { amount: number; currency: string }[]);
-    const expense = summarizeRows((expenseRows ?? []) as { amount: number; currency: string }[]);
-    moneyLeftMixedCurrency = income.mixed || expense.mixed;
-
-    if (!moneyLeftMixedCurrency) {
-      const cashConv = await convertToTWD(cashTotal, cashCurrency);
-      // A zero pool has no real currency to get wrong; only resolve/convert
-      // a real one when there's an actual amount — same "zero has no
-      // currency" reasoning the old savings-target term used.
-      const incomeConv =
-        income.total > 0 && income.currency
-          ? await convertToTWD(income.total, income.currency)
-          : { value: 0, rate: null };
-      const expenseConv =
-        expense.total > 0 && expense.currency
-          ? await convertToTWD(expense.total, expense.currency)
-          : { value: 0, rate: null };
-
-      if (cashConv.value != null && incomeConv.value != null && expenseConv.value != null) {
-        moneyLeft = cashConv.value + incomeConv.value - expenseConv.value;
-        const seen = new Set<string>();
-        const rateNotes: string[] = [];
-        for (const [curr, conv] of [
-          [cashCurrency, cashConv],
-          [income.currency, incomeConv],
-          [expense.currency, expenseConv],
-        ] as [string | null, { rate: number | null }][]) {
-          if (curr && conv.rate != null && !seen.has(curr)) {
-            rateNotes.push(`1 ${curr} = ${conv.rate} TWD`);
-            seen.add(curr);
-          }
-        }
-        if (rateNotes.length > 0) moneyLeftFxNote = `Converted at ${rateNotes.join(", ")}.`;
-      }
-    }
-  }
 
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-[var(--sp-6)] p-[var(--sp-4)] sm:p-[var(--sp-6)]">
@@ -251,12 +161,6 @@ export default async function DashboardPage() {
                   {moneyLeftFxNote && ` · ${moneyLeftFxNote}`}
                 </p>
               </>
-            ) : moneyLeftMixedCurrency ? (
-              <p className="mt-[var(--sp-1)] text-[length:var(--t-xs)] text-[var(--text-muted)]">
-                Cash and transactions are in different currencies right now,
-                so we&apos;re not combining them into one number (mixed
-                currencies).
-              </p>
             ) : (
               <p className="mt-[var(--sp-1)] text-[length:var(--t-xs)] text-[var(--text-muted)]">
                 We can&apos;t work out your running balance right now.
