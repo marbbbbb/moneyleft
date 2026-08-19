@@ -6,8 +6,8 @@ import {
   deleteTransaction,
   materializeRecurring,
 } from "./actions";
-import { TransactionForm } from "./transaction-form";
-import { Card, PageHeader, Button, Money } from "@/components/ui";
+import { AddTransactionPanel } from "./add-transaction-panel";
+import { PageHeader, Button, Money } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +30,28 @@ type Recurring = {
   next_run: string;
   currency: string;
 };
+
+function formatMonthLabel(dateStr: string) {
+  const [year, month] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, 1).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function groupByMonth(transactions: Transaction[]) {
+  const groups: { key: string; label: string; items: Transaction[] }[] = [];
+  for (const t of transactions) {
+    const key = t.date.slice(0, 7);
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) {
+      last.items.push(t);
+    } else {
+      groups.push({ key, label: formatMonthLabel(t.date), items: [t] });
+    }
+  }
+  return groups;
+}
 
 export default async function TransactionsPage() {
   const supabase = await createClient();
@@ -56,6 +78,7 @@ export default async function TransactionsPage() {
 
   const transactions = (data ?? []) as Transaction[];
   const recurring = (recurringRows ?? []) as Recurring[];
+  const monthGroups = groupByMonth(transactions);
 
   // Distinct categories for autocomplete + fuzzy matching.
   const categories = [
@@ -71,12 +94,7 @@ export default async function TransactionsPage() {
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-[var(--sp-6)] p-[var(--sp-4)] sm:p-[var(--sp-6)]">
       <PageHeader title="Transactions" />
 
-      <Card>
-        <h2 className="mb-[var(--sp-3)] text-[length:var(--t-base)] font-medium text-[var(--text)]">
-          Add a transaction
-        </h2>
-        <TransactionForm action={addTransaction} categories={categories} />
-      </Card>
+      <AddTransactionPanel action={addTransaction} categories={categories} />
 
       {recurring.length > 0 && (
         <section>
@@ -134,43 +152,55 @@ export default async function TransactionsPage() {
           </p>
         )}
 
-        <ul className="flex flex-col divide-y divide-[var(--border)]">
-          {transactions.map((t) => (
-            <li
-              key={t.id}
-              className="flex items-center justify-between gap-[var(--sp-3)] py-[var(--sp-3)]"
-            >
-              <div className="flex min-w-0 flex-col">
-                <span className="truncate text-[length:var(--t-base)] text-[var(--text)]">
-                  {t.category}
-                </span>
-                <span className="text-[length:var(--t-xs)] text-[var(--text-muted)]">
-                  {t.date}
-                  {t.note ? ` · ${t.note}` : ""}
-                </span>
-              </div>
-              <div className="flex shrink-0 items-center gap-[var(--sp-3)]">
-                <Money
-                  amount={t.amount}
-                  currency={t.currency}
-                  className={t.type === "income" ? "[--text:var(--pos)]" : undefined}
-                />
-                <Link
-                  href={`/transactions/${t.id}/edit`}
-                  className="text-[length:var(--t-xs)] text-[var(--text-muted)]"
-                >
-                  Edit
-                </Link>
-                <form action={deleteTransaction}>
-                  <input type="hidden" name="id" value={t.id} />
-                  <Button type="submit" variant="danger">
-                    Delete
-                  </Button>
-                </form>
-              </div>
-            </li>
+        <div className="flex flex-col gap-[var(--sp-6)]">
+          {monthGroups.map((group) => (
+            <div key={group.key}>
+              <h3 className="mb-[var(--sp-1)] text-[length:var(--t-xs)] font-medium text-[var(--text-muted)]">
+                {group.label}
+              </h3>
+              <ul className="flex flex-col divide-y divide-[var(--border)]">
+                {group.items.map((t) => (
+                  <li
+                    key={t.id}
+                    className="grid grid-cols-[1fr_auto] items-baseline gap-x-[var(--sp-3)] gap-y-[var(--sp-1)] py-[var(--sp-3)]"
+                  >
+                    <span className="min-w-0 truncate text-[length:var(--t-base)] text-[var(--text)]">
+                      {t.category}
+                    </span>
+                    <Money
+                      amount={t.type === "expense" ? -t.amount : t.amount}
+                      currency={t.currency}
+                      signed
+                      className="text-right"
+                    />
+
+                    <span className="min-w-0 text-[length:var(--t-xs)] text-[var(--text-muted)]">
+                      {t.date}
+                      {t.note ? ` · ${t.note}` : ""}
+                    </span>
+                    <span className="flex items-center justify-end gap-[var(--sp-3)]">
+                      <Link
+                        href={`/transactions/${t.id}/edit`}
+                        className="text-[length:var(--t-xs)] text-[var(--text-muted)] rounded-[var(--r-sm)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                      >
+                        Edit
+                      </Link>
+                      <form action={deleteTransaction}>
+                        <input type="hidden" name="id" value={t.id} />
+                        <button
+                          type="submit"
+                          className="text-[length:var(--t-xs)] text-[var(--text-muted)] rounded-[var(--r-sm)] hover:text-[var(--neg)] focus:text-[var(--neg)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                        >
+                          Delete
+                        </button>
+                      </form>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       </section>
     </main>
   );

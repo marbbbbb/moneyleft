@@ -38,9 +38,15 @@ export function Money({
         : "text-[var(--text)]"
     : "text-[var(--text)]";
 
+  // JetBrains Mono's default tracking reads loose at display size (checked
+  // against the app's one 2xl use, the dashboard hero) but is fine at every
+  // smaller size already in use, so this is scoped to 2xl only rather than
+  // applied globally.
+  const trackingClass = size === "2xl" ? "tracking-tight" : "";
+
   return (
     <span
-      className={`tnum ${colorClass} ${className}`}
+      className={`tnum font-mono ${trackingClass} ${colorClass} ${className}`}
       style={{ fontSize: sizeVar[size] }}
     >
       {formatted}

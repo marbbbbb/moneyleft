@@ -23,15 +23,18 @@ export function TransactionForm({
   categories,
   initial,
   submitLabel,
+  onSuccess,
 }: {
   action: FormAction;
   categories: string[];
   initial?: TransactionInitial;
   submitLabel?: string;
+  onSuccess?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(action, {});
   const formRef = useRef<HTMLFormElement>(null);
   const isEdit = Boolean(initial);
+  const isFirstRender = useRef(true);
 
   const [type, setType] = useState<"expense" | "income">(
     initial?.type ?? "expense",
@@ -40,11 +43,19 @@ export function TransactionForm({
 
   // Clear the form after a successful add (edit redirects, so this won't fire there).
   useEffect(() => {
+    const wasFirstRender = isFirstRender.current;
+    isFirstRender.current = false;
     if (!isEdit && !pending && !state.error) {
       formRef.current?.reset();
       setType("expense");
       setCategory("");
+      if (!wasFirstRender) onSuccess?.();
     }
+    // onSuccess intentionally omitted: it's a fresh closure from the parent
+    // every render (AddTransactionPanel re-renders on open/close), and
+    // including it would re-run this effect on every panel toggle, calling
+    // onSuccess immediately after opening.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending, state, isEdit]);
 
   const suggestion = suggestExistingCategory(category, categories);

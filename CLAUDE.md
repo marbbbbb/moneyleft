@@ -27,8 +27,13 @@ Mobile-first. Single user for now (Marcus).
 ## Migrations
 
 Flat in `supabase/`, not `supabase/migrations/`. Numbered sequentially,
-002 through 014 (highest file present: `014_base_currency.sql`).
-**Last CONFIRMED applied: 014.** Schema and code are in sync.
+002 through 015 (highest file present: `015_cash_confirmed_at.sql`).
+**Last CONFIRMED applied: 014.** 015 is written and printed but not yet
+confirmed run — until it is, `app/dashboard/page.tsx`'s `cash_confirmed_at`
+select fails with a schema-cache error, caught and treated as "unavailable"
+rather than crashing the page (see Schema gotchas' note on this exact
+failure mode). Ask Marcus before assuming `user_profiles.cash_confirmed_at`
+exists live.
 
 Never run, apply, or push a migration. PRINT the SQL in one copy-paste block;
 Marcus runs it in the Supabase SQL Editor by hand.
@@ -110,6 +115,25 @@ Tokens in `app/globals.css` as CSS custom properties — `--bg`, `--surface`,
 `:root`, dark under `prefers-color-scheme: dark` — no manual theme toggle.
 Used via Tailwind arbitrary values, e.g. `bg-[var(--surface)]`.
 
+Two fonts, both self-hosted via `next/font/google` in `app/layout.tsx`, wired
+into Tailwind's `@theme inline` in `app/globals.css` as `--font-sans` (Geist,
+weights 400/500/600) and `--font-mono` (JetBrains Mono, weights
+400/500/600/700 — the 700 exists only for the net worth headline). `body`'s
+`font-family: var(--font-sans)` makes sans the app-wide default; `font-mono`
+is applied ad-hoc via className wherever a NUMERIC FIGURE renders — always
+inside `Money` (`components/ui/Money.tsx`, which also scopes `tracking-tight`
+to its own `size="2xl"` — checked visually, JetBrains Mono reads loose at
+display size but is fine smaller), plus the two mixed-currency raw-number
+fallback spans in `app/dashboard/page.tsx` and every figure in
+`app/net-worth-view.tsx` (which predates the token system and isn't on it
+otherwise — still raw Tailwind classes and its own local `money()` formatter,
+just with `font-mono` added to each figure). Never applied to labels,
+headings, body copy, buttons, or form inputs. `.tnum` (`font-variant-numeric:
+tabular-nums`) still sits alongside `font-mono` on every figure — redundant
+now that the font itself is monospace (verified: every character, digit or
+not, renders at an identical pixel width), but left in rather than removed,
+partly for resilience if the mono font ever fails to load.
+
 Shared components in `components/ui/` (`@/components/ui`): `Card`,
 `PageHeader` (title + optional `nav` slot — **no subtitle prop**; pages
 wanting one render a sibling `<p>` right after it — see `app/dashboard`,
@@ -186,12 +210,22 @@ toggle, trend chart), its three summary boxes relabeled in plain language
 (Cash & Investments / Assets / Debts) and made tappable — Assets and Debts
 link out whole, Cash & Investments' two sub-lines link to `/cash` and
 `/holdings` individually; bottom tab bar navigation (see Navigation);
-dashboard Home tab with a Cash & Safe-to-Spend card above a spending card,
-each with a "Manage" link; a one-question-per-screen onboarding wizard,
-starting with "which currency do you think in"; `/plan` (the user's spending
-plan, moved out of `/settings`) and `/settings` (now just category merging);
-phase-1 multi-currency base-currency work — every transaction/cash/
-liability/asset form has a currency picker, and every stored amount is
+dashboard Home tab with a Cash & Money-left card above a spending card, each
+with a "Manage" link, and no account chrome (email/sign-out moved out — see
+below); Money left is a running balance (cash + income − expenses since
+`user_profiles.cash_confirmed_at`, inclusive, no upper bound so future-dated
+transactions count), replacing an earlier calendar-month-scoped figure that
+reset to the full cash balance every 1st and ignored income entirely —
+`cash_confirmed_at` is stamped to `now()` on every `/cash` save (add, edit,
+delete — `app/cash/actions.ts`'s `stampCashConfirmed`), and the card shows
+"Balances confirmed <date>" so the figure isn't magic; a one-question-per-
+screen onboarding wizard, starting with "which
+currency do you think in"; `/plan` (the user's spending plan, moved out of
+`/settings`) and `/settings` (category merging plus an Account section —
+signed-in email as read-only text, and Sign out using the same handler from
+`app/login/actions.ts`, not a reimplementation); phase-1 multi-currency
+base-currency work — every transaction/cash/liability/asset form has a
+currency picker, and every stored amount is
 labeled with its real currency instead of assumed.
 
 **In flight / unfinished:**
@@ -199,7 +233,7 @@ labeled with its real currency instead of assumed.
   edit/detail sub-pages are still unstyled (see Design system).
 - Dashboard's per-category spending rows and vs-last-month delta line still
   assume a single currency (`SPENDING_CURRENCY = "TWD"`), even though the
-  headline spending total and the safe-to-spend figure now handle mixed
+  headline spending total and the Left-this-month figure now handle mixed
   currencies honestly. Known gap, not yet closed.
 
 ## Deliberately out of scope
@@ -209,8 +243,9 @@ labeled with its real currency instead of assumed.
   freely changeable, never rewriting storage. What's built is BASE currency
   only (what a stored number means, set at onboarding, near-immutable). The
   toggle is a distinct later phase; don't build it unless explicitly asked.
-- A display-name/account/sign-out/reminders-toggle/delete-data settings
-  section.
+- A display-name field, reminders toggle, delete-data section, or currency
+  switcher on `/settings`. (Account/sign-out was in this list too, until the
+  task that added the Account section to `/settings` explicitly asked for it.)
 
 ## Working style
 

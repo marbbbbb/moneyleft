@@ -5,8 +5,23 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CASH_ACCOUNT_TYPES } from "@/lib/cash";
 import { SUPPORTED_CURRENCIES } from "@/lib/tickers";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 type ActionState = { error?: string };
+
+// "I last checked my accounts on this day" - one stamp per cash save (add,
+// edit, or delete), read by the dashboard's running-balance figure. Fire-and-
+// forget like the rest of this file's secondary writes: a failure here (e.g.
+// migration 015 not run yet) should never block the user's actual cash save.
+// No explicit user_id filter needed - user_profiles is one row per user and
+// RLS-scoped ("Owner full access": using (auth.uid() = user_id)), so an
+// unfiltered update here only ever touches the signed-in user's own row, the
+// same pattern markAllRemindersRead already uses in app/settings/actions.ts.
+async function stampCashConfirmed(supabase: SupabaseClient) {
+  await supabase
+    .from("user_profiles")
+    .update({ cash_confirmed_at: new Date().toISOString() });
+}
 
 function parseCashAccount(formData: FormData):
   | { error: string }
@@ -44,8 +59,11 @@ export async function addCashAccount(
 
   if (error) return { error: error.message };
 
+  await stampCashConfirmed(supabase);
+
   revalidatePath("/cash");
   revalidatePath("/"); // net worth homepage
+  revalidatePath("/dashboard");
   return {};
 }
 
@@ -72,8 +90,11 @@ export async function updateCashAccount(
 
   if (error) return { error: error.message };
 
+  await stampCashConfirmed(supabase);
+
   revalidatePath("/cash");
   revalidatePath("/");
+  revalidatePath("/dashboard");
   redirect("/cash");
 }
 
@@ -85,6 +106,9 @@ export async function deleteCashAccount(formData: FormData) {
   // RLS guarantees a user can only delete rows they own.
   await supabase.from("cash_accounts").delete().eq("id", id);
 
+  await stampCashConfirmed(supabase);
+
   revalidatePath("/cash");
   revalidatePath("/");
+  revalidatePath("/dashboard");
 }

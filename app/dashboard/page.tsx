@@ -1,11 +1,10 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { signout } from "@/app/login/actions";
 import { getMonthOverMonth, type MonthOverMonth } from "@/lib/calculations/spending";
-import { loadRulesDefaults } from "@/app/settings/defaults";
 import { getPriceProvider } from "@/lib/prices";
-import { Card, PageHeader, Button, Money } from "@/components/ui";
+import { Card, PageHeader, Money } from "@/components/ui";
+import { CategoryDisclosure } from "./category-disclosure";
 
 const SPENDING_CURRENCY = "TWD";
 
@@ -23,12 +22,10 @@ function formatMonth(startYmd: string): string {
   });
 }
 
-// The savings-target amount has no currency column of its own (user_rules
-// doesn't carry one) — treated as TWD, matching every other currency-less
-// figure in this app. Converts a same-single-currency amount into TWD via the
-// same live FX provider the net-worth page uses, WITHOUT pulling in its full
-// computeNetWorth pipeline (portfolio prices, assets, liabilities) just for one
-// rate lookup.
+// Converts a same-single-currency amount into TWD via the same live FX
+// provider the net-worth page uses, WITHOUT pulling in its full
+// computeNetWorth pipeline (portfolio prices, assets, liabilities) just for
+// one rate lookup.
 async function convertToTWD(
   amount: number,
   currency: string,
@@ -38,13 +35,21 @@ async function convertToTWD(
   return { value: rate != null ? amount * rate : null, rate };
 }
 
+// Total amount and the single currency it's in, if there is one - the same
+// "single currency or mixed" determination used everywhere in this app that
+// sums money, just factored out since Money left now needs it for two pools
+// (income, expense) instead of one.
+function summarizeRows(rows: { amount: number; currency: string }[]) {
+  const currencies = new Set(rows.map((r) => r.currency));
+  return {
+    total: rows.reduce((sum, r) => sum + Number(r.amount), 0),
+    mixed: currencies.size > 1,
+    currency: currencies.size === 1 ? [...currencies][0] : null,
+  };
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
-
-  // Middleware already guards this route, but we read the user for display.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   // First login: send new users through the onboarding quiz before anything else.
   const { data: profile } = await supabase
@@ -101,95 +106,117 @@ export default async function DashboardPage() {
   const cashCurrency = distinctCash.size === 1 ? [...distinctCash][0] : null;
   const cashTotal = cash.reduce((sum, c) => sum + Number(c.balance), 0);
 
-  // Monthly savings target — reuses the same loader /settings and /onboarding
-  // already use, rather than re-querying user_rules here. savingsTargetCurrency
-  // is the specific user_rules row's OWN stored currency (not the user's
-  // current preferred_currency, which could have changed since), so we no
-  // longer have to assume it's TWD.
-  const { defaults: prefs, savingsTargetCurrency } = await loadRulesDefaults();
-  const savingsTargetNum = prefs.savingsTarget ? Number(prefs.savingsTarget) : 0;
-  const savingsTarget = Number.isFinite(savingsTargetNum) ? savingsTargetNum : 0;
+  // cash_confirmed_at lives on user_profiles (one row per user, not per cash
+  // account — transactions aren't linked to individual accounts, so a
+  // per-account date would be unattributable). Wrapped defensively: until
+  // migration 015 actually runs, this column doesn't exist yet and the
+  // select fails with a schema-cache error, not a normal one — degrade to
+  // "unavailable" rather than crashing the page.
+  let cashConfirmedAt: string | null = null;
+  try {
+    const { data: profileRow, error: profileErr } = await supabase
+      .from("user_profiles")
+      .select("cash_confirmed_at")
+      .maybeSingle();
+    if (!profileErr) {
+      cashConfirmedAt = (profileRow?.cash_confirmed_at as string | null) ?? null;
+    }
+  } catch {
+    cashConfirmedAt = null;
+  }
+  // transactions.date has no time-of-day, so "on or after" is compared at day
+  // granularity — same plain "YYYY-MM-DD" string comparison every other
+  // transactions.date range query in this app already uses (see
+  // getMonthOverMonth), not timezone-aware Date math.
+  const confirmedDate = cashConfirmedAt ? cashConfirmedAt.slice(0, 10) : null;
+  const confirmedDateLabel = cashConfirmedAt
+    ? new Date(cashConfirmedAt).toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
 
-  // Safe to spend = cash − this month's spending − savings target, all
-  // resolved into TWD. Only computed when cash and spending are each a single
-  // currency — otherwise subtracting would silently mix currencies, which we
-  // don't do anywhere else in this app either. Any side that isn't already
-  // TWD (including the savings target now) is converted via the live FX rate
-  // (see convertToTWD) rather than assumed — a single cheap lookup per side,
-  // not the full net-worth pipeline.
-  let safeToSpend: number | null = null;
-  let safeToSpendFxNote: string | null = null;
+  // Money left = cash + income since cash_confirmed_at − expenses since
+  // cash_confirmed_at, resolved into TWD. Inclusive of the confirmed date;
+  // no upper bound, so future-dated transactions count too. Only computed
+  // when cash and each transaction pool (income, expense) are themselves a
+  // single currency — otherwise combining would silently mix currencies,
+  // which this app never does. Any side that isn't already TWD is converted
+  // via the live FX rate (see convertToTWD) rather than assumed.
+  let moneyLeft: number | null = null;
+  let moneyLeftFxNote: string | null = null;
+  let moneyLeftMixedCurrency = false;
 
-  if (mom && cash.length > 0 && cashCurrency && !cashMixed && !mixedCurrency) {
-    const spendCurrency = totalCurrency ?? SPENDING_CURRENCY;
-    // A zero target has no currency to get wrong; only resolve a real one
-    // when there's an actual amount to convert. Null currency only happens
-    // when no savings-target rule exists yet.
-    const targetCurrency =
-      savingsTarget > 0 ? (savingsTargetCurrency ?? spendCurrency) : "TWD";
+  if (confirmedDate && cash.length > 0 && cashCurrency && !cashMixed) {
+    const [{ data: incomeRows }, { data: expenseRows }] = await Promise.all([
+      supabase
+        .from("transactions")
+        .select("amount, currency")
+        .eq("type", "income")
+        .gte("date", confirmedDate),
+      supabase
+        .from("transactions")
+        .select("amount, currency")
+        .eq("type", "expense")
+        .gte("date", confirmedDate),
+    ]);
 
-    const cashConv = await convertToTWD(cashTotal, cashCurrency);
-    const spendConv = await convertToTWD(mom.current.total, spendCurrency);
-    const targetConv = await convertToTWD(savingsTarget, targetCurrency);
+    const income = summarizeRows((incomeRows ?? []) as { amount: number; currency: string }[]);
+    const expense = summarizeRows((expenseRows ?? []) as { amount: number; currency: string }[]);
+    moneyLeftMixedCurrency = income.mixed || expense.mixed;
 
-    if (cashConv.value != null && spendConv.value != null && targetConv.value != null) {
-      safeToSpend = cashConv.value - spendConv.value - targetConv.value;
-      const seen = new Set<string>();
-      const rateNotes: string[] = [];
-      for (const [curr, conv] of [
-        [cashCurrency, cashConv],
-        [spendCurrency, spendConv],
-        [targetCurrency, targetConv],
-      ] as [string, { rate: number | null }][]) {
-        if (conv.rate != null && !seen.has(curr)) {
-          rateNotes.push(`1 ${curr} = ${conv.rate} TWD`);
-          seen.add(curr);
+    if (!moneyLeftMixedCurrency) {
+      const cashConv = await convertToTWD(cashTotal, cashCurrency);
+      // A zero pool has no real currency to get wrong; only resolve/convert
+      // a real one when there's an actual amount — same "zero has no
+      // currency" reasoning the old savings-target term used.
+      const incomeConv =
+        income.total > 0 && income.currency
+          ? await convertToTWD(income.total, income.currency)
+          : { value: 0, rate: null };
+      const expenseConv =
+        expense.total > 0 && expense.currency
+          ? await convertToTWD(expense.total, expense.currency)
+          : { value: 0, rate: null };
+
+      if (cashConv.value != null && incomeConv.value != null && expenseConv.value != null) {
+        moneyLeft = cashConv.value + incomeConv.value - expenseConv.value;
+        const seen = new Set<string>();
+        const rateNotes: string[] = [];
+        for (const [curr, conv] of [
+          [cashCurrency, cashConv],
+          [income.currency, incomeConv],
+          [expense.currency, expenseConv],
+        ] as [string | null, { rate: number | null }][]) {
+          if (curr && conv.rate != null && !seen.has(curr)) {
+            rateNotes.push(`1 ${curr} = ${conv.rate} TWD`);
+            seen.add(curr);
+          }
         }
+        if (rateNotes.length > 0) moneyLeftFxNote = `Converted at ${rateNotes.join(", ")}.`;
       }
-      if (rateNotes.length > 0) safeToSpendFxNote = `Converted at ${rateNotes.join(", ")}.`;
     }
   }
 
-  // True only when we genuinely tried and couldn't (mixed currencies, or an
-  // FX lookup failed) — not when there's simply no spending data (mom is
-  // null) or no cash accounts yet (that's the empty state instead).
-  const safeToSpendUnavailable = Boolean(mom) && cash.length > 0 && safeToSpend === null;
-
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-[var(--sp-6)] p-[var(--sp-4)] sm:p-[var(--sp-6)]">
-      <div>
-        <PageHeader
-          title="Dashboard"
-          nav={
-            <form action={signout}>
-              <Button type="submit" variant="secondary">
-                Sign out
-              </Button>
-            </form>
-          }
-        />
-        <p className="text-[length:var(--t-sm)] text-[var(--text-subtle)]">
-          Signed in as {user?.email}
-        </p>
-      </div>
+      <PageHeader title="Dashboard" />
 
       <Card>
+        {/* Held line + hero. One group: no divider between them, just extra
+            breathing room before the hero. */}
         <p className="text-[length:var(--t-sm)] text-[var(--text-muted)]">Cash</p>
 
         {cash.length === 0 ? (
-          <>
-            <p className="mt-[var(--sp-2)] text-[length:var(--t-sm)] text-[var(--text-muted)]">
-              No cash accounts yet — add one to see what&apos;s safe to spend.
-            </p>
-            <Link href="/cash" className={`mt-[var(--sp-3)] ${MANAGE_LINK_CLASS}`}>
-              Manage cash
-            </Link>
-          </>
+          <p className="mt-[var(--sp-2)] text-[length:var(--t-sm)] text-[var(--text-muted)]">
+            No cash accounts yet — add one to see your money left.
+          </p>
         ) : (
           <>
             {cashMixed ? (
               <>
-                <span className="tnum mt-[var(--sp-1)] block text-[length:var(--t-2xl)] font-semibold text-[var(--text)]">
+                <span className="tnum font-mono mt-[var(--sp-1)] block text-[length:var(--t-sm)] text-[var(--text)]">
                   {cashTotal.toFixed(2)}
                 </span>
                 <p className="text-[length:var(--t-xs)] text-[var(--text-muted)]">
@@ -200,133 +227,119 @@ export default async function DashboardPage() {
               <Money
                 amount={cashTotal}
                 currency={cashCurrency ?? SPENDING_CURRENCY}
-                size="2xl"
+                size="sm"
+                className="mt-[var(--sp-1)] block font-medium"
+              />
+            )}
+
+            <p className="mt-[var(--sp-6)] text-[length:var(--t-sm)] text-[var(--text-muted)]">
+              Money left
+            </p>
+            {moneyLeft !== null ? (
+              <>
+                <Money
+                  amount={moneyLeft}
+                  currency="TWD"
+                  size="2xl"
+                  className={`mt-[var(--sp-1)] block font-semibold ${
+                    moneyLeft < 0 ? "[--text:var(--neg)]" : ""
+                  }`}
+                />
+                <p className="mt-[var(--sp-1)] text-[length:var(--t-xs)] text-[var(--text-muted)]">
+                  your cash, plus income and minus spending since you last
+                  updated it
+                  {moneyLeftFxNote && ` · ${moneyLeftFxNote}`}
+                </p>
+              </>
+            ) : moneyLeftMixedCurrency ? (
+              <p className="mt-[var(--sp-1)] text-[length:var(--t-xs)] text-[var(--text-muted)]">
+                Cash and transactions are in different currencies right now,
+                so we&apos;re not combining them into one number (mixed
+                currencies).
+              </p>
+            ) : (
+              <p className="mt-[var(--sp-1)] text-[length:var(--t-xs)] text-[var(--text-muted)]">
+                We can&apos;t work out your running balance right now.
+              </p>
+            )}
+            {confirmedDateLabel && (
+              <p className="mt-[var(--sp-1)] text-[length:var(--t-xs)] text-[var(--text-muted)]">
+                Balances confirmed {confirmedDateLabel}
+              </p>
+            )}
+          </>
+        )}
+
+        {/* Spending group, separated by one hairline. */}
+        {mom && (
+          <div className="mt-[var(--sp-4)] border-t border-[var(--border)] pt-[var(--sp-4)]">
+            <p className="text-[length:var(--t-sm)] text-[var(--text-muted)]">
+              Spending — {formatMonth(mom.current.start)}
+            </p>
+            {mixedCurrency ? (
+              <>
+                <span className="tnum font-mono mt-[var(--sp-1)] block text-[length:var(--t-xl)] font-semibold text-[var(--text)]">
+                  {mom.current.total.toFixed(2)}
+                </span>
+                <p className="text-[length:var(--t-xs)] text-[var(--text-muted)]">
+                  (mixed currencies)
+                </p>
+              </>
+            ) : (
+              <Money
+                amount={mom.current.total}
+                currency={totalCurrency ?? SPENDING_CURRENCY}
+                size="xl"
                 className="mt-[var(--sp-1)] block font-semibold"
               />
             )}
 
-            <div className="mt-[var(--sp-4)] border-t border-[var(--border)] pt-[var(--sp-4)]">
-              <p className="text-[length:var(--t-sm)] text-[var(--text-muted)]">
-                Safe to spend
-              </p>
-              {safeToSpend !== null ? (
+            <p className="mt-[var(--sp-2)] text-[length:var(--t-sm)] text-[var(--text-muted)]">
+              {deltaPct === null ? (
+                "No prior month to compare."
+              ) : (
                 <>
                   <Money
-                    amount={safeToSpend}
-                    currency="TWD"
-                    size="lg"
-                    className={`mt-[var(--sp-1)] block font-semibold ${
-                      safeToSpend < 0
+                    amount={Math.abs(deltaTotal)}
+                    currency={SPENDING_CURRENCY}
+                    size="sm"
+                    className={
+                      deltaTotal > 0
                         ? "[--text:var(--neg)]"
-                        : safeToSpend > 0
+                        : deltaTotal < 0
                           ? "[--text:var(--pos)]"
-                          : ""
-                    }`}
-                  />
-                  <p className="mt-[var(--sp-1)] text-[length:var(--t-xs)] text-[var(--text-muted)]">
-                    cash, minus this month&apos;s spending
-                    {savingsTarget > 0 &&
-                      ` and your ${savingsTargetCurrency ?? "TWD"} ${savingsTarget.toLocaleString("en-US")} savings goal`}
-                    {safeToSpendFxNote && ` · ${safeToSpendFxNote}`}
-                  </p>
+                          : undefined
+                    }
+                  />{" "}
+                  {deltaTotal > 0 ? "↑" : deltaTotal < 0 ? "↓" : "·"} vs{" "}
+                  {formatMonth(mom.previous.start)} ({deltaPct >= 0 ? "+" : "−"}
+                  {Math.abs(deltaPct).toFixed(0)}%)
                 </>
-              ) : safeToSpendUnavailable ? (
-                <p className="mt-[var(--sp-1)] text-[length:var(--t-xs)] text-[var(--text-muted)]">
-                  Cash and spending are in different currencies right now, so
-                  we&apos;re not combining them into one number (mixed currencies).
-                </p>
-              ) : (
-                <p className="mt-[var(--sp-1)] text-[length:var(--t-xs)] text-[var(--text-muted)]">
-                  Add a transaction this month to see what&apos;s safe to spend.
-                </p>
               )}
-            </div>
-
-            <Link href="/cash" className={`mt-[var(--sp-4)] ${MANAGE_LINK_CLASS}`}>
-              Manage cash
-            </Link>
-          </>
-        )}
-      </Card>
-
-      {mom && (
-        <Card>
-          <p className="text-[length:var(--t-sm)] text-[var(--text-muted)]">
-            Spending — {formatMonth(mom.current.start)}
-          </p>
-          {mixedCurrency ? (
-            <>
-              <span className="tnum mt-[var(--sp-1)] block text-[length:var(--t-2xl)] font-semibold text-[var(--text)]">
-                {mom.current.total.toFixed(2)}
-              </span>
-              <p className="text-[length:var(--t-xs)] text-[var(--text-muted)]">
-                (mixed currencies)
-              </p>
-            </>
-          ) : (
-            <Money
-              amount={mom.current.total}
-              currency={totalCurrency ?? SPENDING_CURRENCY}
-              size="2xl"
-              className="mt-[var(--sp-1)] block font-semibold"
-            />
-          )}
-
-          <p className="mt-[var(--sp-2)] text-[length:var(--t-sm)] text-[var(--text-muted)]">
-            {deltaPct === null ? (
-              "No prior month to compare."
-            ) : (
-              <>
-                <Money
-                  amount={Math.abs(deltaTotal)}
-                  currency={SPENDING_CURRENCY}
-                  size="sm"
-                  className={
-                    deltaTotal > 0
-                      ? "[--text:var(--neg)]"
-                      : deltaTotal < 0
-                        ? "[--text:var(--pos)]"
-                        : undefined
-                  }
-                />{" "}
-                {deltaTotal > 0 ? "↑" : deltaTotal < 0 ? "↓" : "·"} vs{" "}
-                {formatMonth(mom.previous.start)} ({deltaPct >= 0 ? "+" : "−"}
-                {Math.abs(deltaPct).toFixed(0)}%)
-              </>
-            )}
-          </p>
-
-          {mom.byCategory.length === 0 ? (
-            <p className="py-[var(--sp-6)] text-center text-[length:var(--t-sm)] text-[var(--text-muted)]">
-              No transactions this month.
             </p>
-          ) : (
-            <ul className="mt-[var(--sp-4)] flex flex-col divide-y divide-[var(--border)]">
-              {mom.byCategory.slice(0, 5).map((c) => (
-                <li
-                  key={c.category}
-                  className="flex items-center justify-between py-[var(--sp-2)] text-[length:var(--t-sm)]"
-                >
-                  <span className="text-[var(--text)]">{c.category}</span>
-                  <span className="flex items-center gap-[var(--sp-3)]">
-                    <Money amount={c.current} currency={SPENDING_CURRENCY} size="sm" />
-                    <Money
-                      amount={-c.delta}
-                      currency={SPENDING_CURRENCY}
-                      signed
-                      size="sm"
-                    />
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
 
-          <Link href="/transactions" className={`mt-[var(--sp-4)] ${MANAGE_LINK_CLASS}`}>
-            Manage spending
+            {mom.byCategory.length === 0 ? (
+              <p className="py-[var(--sp-6)] text-center text-[length:var(--t-sm)] text-[var(--text-muted)]">
+                No transactions this month.
+              </p>
+            ) : (
+              <CategoryDisclosure byCategory={mom.byCategory} />
+            )}
+          </div>
+        )}
+
+        {/* Actions, separated by one hairline. */}
+        <div className="mt-[var(--sp-4)] flex gap-[var(--sp-3)] border-t border-[var(--border)] pt-[var(--sp-4)]">
+          <Link href="/cash" className={`flex-1 ${MANAGE_LINK_CLASS}`}>
+            Manage cash
           </Link>
-        </Card>
-      )}
+          {mom && (
+            <Link href="/transactions" className={`flex-1 ${MANAGE_LINK_CLASS}`}>
+              Manage spending
+            </Link>
+          )}
+        </div>
+      </Card>
     </main>
   );
 }

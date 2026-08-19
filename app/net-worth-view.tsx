@@ -48,17 +48,6 @@ export function NetWorthView({
     ? currency
     : netWorth.supportedCurrencies[0];
 
-  const asOfLabel = new Date(netWorth.asOf).toLocaleString();
-
-  // Audit line: how each other currency was converted into the display currency.
-  const fxParts = netWorth.supportedCurrencies
-    .filter((c) => c !== display)
-    .map((other) => {
-      const rate = netWorth.fxRates[other]?.[display];
-      return rate != null ? `1 ${other} = ${rate} ${display}` : null;
-    })
-    .filter(Boolean);
-
   return (
     <>
       {/* Headline total */}
@@ -83,13 +72,8 @@ export function NetWorthView({
             ))}
           </div>
         </div>
-        <p className="text-3xl font-bold break-words sm:text-4xl">
+        <p className="font-mono tracking-tight text-3xl font-bold break-words sm:text-4xl">
           {money(netWorth.total[display], display)}
-        </p>
-        <p className="mt-2 text-xs text-gray-400">
-          Summed in {display}
-          {fxParts.length > 0 && ` · ${fxParts.join(" · ")}`} · via Yahoo Finance
-          · as of {asOfLabel}
         </p>
       </section>
 
@@ -129,7 +113,7 @@ export function NetWorthView({
             </h2>
             <span className="text-xs text-gray-400">cash + stocks</span>
           </div>
-          <p className="mt-2 text-2xl font-semibold">
+          <p className="font-mono mt-2 text-2xl font-semibold">
             {money(netWorth.liquid[display], display)}
           </p>
           <dl className="mt-4 flex flex-col gap-1 text-sm">
@@ -139,7 +123,7 @@ export function NetWorthView({
             >
               <dt className="text-gray-500">Cash accounts</dt>
               <dd className="flex items-center gap-1">
-                {money(netWorth.cash[display], display)}
+                <span className="font-mono">{money(netWorth.cash[display], display)}</span>
                 <span className="text-[var(--text-subtle)]" aria-hidden="true">
                   →
                 </span>
@@ -151,7 +135,7 @@ export function NetWorthView({
             >
               <dt className="text-gray-500">Stock holdings</dt>
               <dd className="flex items-center gap-1">
-                {money(netWorth.holdings[display], display)}
+                <span className="font-mono">{money(netWorth.holdings[display], display)}</span>
                 <span className="text-[var(--text-subtle)]" aria-hidden="true">
                   →
                 </span>
@@ -175,7 +159,7 @@ export function NetWorthView({
               </span>
             </div>
             <p
-              className={`mt-2 text-2xl font-semibold ${
+              className={`font-mono mt-2 text-2xl font-semibold ${
                 netWorth.illiquid[display] > 0 ? "" : "text-gray-400"
               }`}
             >
@@ -189,12 +173,14 @@ export function NetWorthView({
                     : "text-red-600"
                 }`}
               >
-                {netWorth.assetGain[display] >= 0 ? "+" : "−"}
-                {money(Math.abs(netWorth.assetGain[display]), display)}
-                {netWorth.assetGainPct[display] !== null &&
-                  ` (${netWorth.assetGain[display] >= 0 ? "+" : "−"}${Math.abs(
-                    netWorth.assetGainPct[display]!,
-                  ).toFixed(1)}%)`}{" "}
+                <span className="font-mono">
+                  {netWorth.assetGain[display] >= 0 ? "+" : "−"}
+                  {money(Math.abs(netWorth.assetGain[display]), display)}
+                  {netWorth.assetGainPct[display] !== null &&
+                    ` (${netWorth.assetGain[display] >= 0 ? "+" : "−"}${Math.abs(
+                      netWorth.assetGainPct[display]!,
+                    ).toFixed(1)}%)`}
+                </span>{" "}
                 <span className="text-gray-500">unrealized vs purchase</span>
               </p>
             ) : (
@@ -221,7 +207,7 @@ export function NetWorthView({
               </span>
             </div>
             <p
-              className={`mt-2 text-2xl font-semibold ${
+              className={`font-mono mt-2 text-2xl font-semibold ${
                 netWorth.liabilities[display] > 0 ? "text-red-600" : "text-gray-400"
               }`}
             >
