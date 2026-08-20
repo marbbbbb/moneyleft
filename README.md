@@ -1,5 +1,3 @@
-# MoneyLeft
-
 A personal net worth tracker. It splits what you own into liquid and
 illiquid wealth, values illiquid assets (collectibles, vehicles, gold, and
 similar) with live market data where it exists and an AI estimate where it
@@ -106,4 +104,14 @@ Supabase SQL Editor.
 
 ## Screenshots
 
-_(to be added)_
+**Home**
+<img width="600" alt="Screenshot 2026-08-20 at 4 36 01 PM" src="https://github.com/user-attachments/assets/e338cd20-a5e0-41d9-ae66-e25d1ec5e9fc" />
+
+**Transactions**
+<img width="600" alt="Screenshot 2026-08-20 at 4 36 23 PM" src="https://github.com/user-attachments/assets/33d9facb-8a40-4442-99c6-ad2689362fe3" />
+
+**Net worth**
+<img width="600" alt="Screenshot 2026-08-20 at 4 39 49 PM" src="https://github.com/user-attachments/assets/d0891e6d-5f7a-4057-91bc-f5b755a107d7" />
+
+
+
