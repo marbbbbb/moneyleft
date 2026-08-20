@@ -178,7 +178,7 @@ export default async function TransactionsPage() {
                       {t.date}
                       {t.note ? ` · ${t.note}` : ""}
                     </span>
-                    <span className="flex items-center justify-end gap-[var(--sp-3)]">
+                    <span className="flex items-baseline justify-end gap-[var(--sp-3)]">
                       <Link
                         href={`/transactions/${t.id}/edit`}
                         className="text-[length:var(--t-xs)] text-[var(--text-muted)] rounded-[var(--r-sm)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
@@ -189,7 +189,7 @@ export default async function TransactionsPage() {
                         <input type="hidden" name="id" value={t.id} />
                         <button
                           type="submit"
-                          className="text-[length:var(--t-xs)] text-[var(--text-muted)] rounded-[var(--r-sm)] hover:text-[var(--neg)] focus:text-[var(--neg)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                          className="appearance-none text-[length:var(--t-xs)] text-[var(--text-muted)] rounded-[var(--r-sm)] hover:text-[var(--neg)] focus:text-[var(--neg)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
                         >
                           Delete
                         </button>

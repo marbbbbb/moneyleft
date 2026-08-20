@@ -1,11 +1,11 @@
 "use client";
 
 import { useActionState } from "react";
-import { login, signup } from "./actions";
+import { login, signup, demoLogin } from "./actions";
 
 const initialState: { error?: string; message?: string } = {};
 
-export function LoginForm() {
+export function LoginForm({ demoAvailable }: { demoAvailable: boolean }) {
   const [loginState, loginAction, loginPending] = useActionState(
     login,
     initialState,
@@ -14,10 +14,14 @@ export function LoginForm() {
     signup,
     initialState,
   );
+  const [demoState, demoAction, demoPending] = useActionState(
+    demoLogin,
+    initialState,
+  );
 
-  const error = loginState.error ?? signupState.error;
+  const error = loginState.error ?? signupState.error ?? demoState.error;
   const message = signupState.message;
-  const pending = loginPending || signupPending;
+  const pending = loginPending || signupPending || demoPending;
 
   return (
     <form className="flex flex-col gap-4">
@@ -63,6 +67,22 @@ export function LoginForm() {
           {signupPending ? "Creating…" : "Sign up"}
         </button>
       </div>
+
+      {demoAvailable && (
+        <div className="flex flex-col items-center gap-1 text-center">
+          <button
+            formAction={demoAction}
+            formNoValidate
+            disabled={pending}
+            className="min-h-11 px-2 text-sm text-gray-500 underline underline-offset-2 disabled:opacity-50 dark:text-gray-400"
+          >
+            {demoPending ? "Signing in…" : "View demo"}
+          </button>
+          <p className="text-xs text-gray-400 dark:text-gray-500">
+            Sample data. Sign up to track your own.
+          </p>
+        </div>
+      )}
     </form>
   );
 }

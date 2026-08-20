@@ -1,10 +1,13 @@
 @AGENTS.md
 
-# Finance App — Project Context
+# MoneyLeft — Project Context
 
-Personal net worth tracker. Not a budgeting app. The differentiator is an asset
-vault with AI/market-data valuation, split into liquid vs illiquid wealth.
-Mobile-first. Single user for now (Marcus).
+Personal net worth tracker (renamed from "Finance App" - the repo directory,
+`package.json`'s name, and the Vercel project all still say `finance-app`;
+only user-facing copy and metadata changed, deliberately, see Current state).
+Not a budgeting app. The differentiator is an asset vault with AI/market-data
+valuation, split into liquid vs illiquid wealth. Mobile-first. Single user
+for now (Marcus).
 
 ## Stack and deploy
 
@@ -17,12 +20,20 @@ Mobile-first. Single user for now (Marcus).
 - Anthropic API for valuations and reminders, model `claude-haiku-4-5`
 - Yahoo Finance for stock prices, gold spot, and FX rates (`lib/prices/yahoo.ts`)
 - Local dev: `npm run dev` at localhost:3000
-- Deployed to Vercel: finance-app-eosin-alpha.vercel.app. Every push to `main`
-  on GitHub auto-deploys.
+- Deployed to Vercel: moneyleft.vercel.app. Every push to `main` on GitHub
+  auto-deploys.
 - Env vars must exist in BOTH `.env.local` and the Vercel dashboard
   (Settings → Environment Variables). Adding/renaming one the app depends on
   needs both, or the live site breaks at runtime while the build still passes.
 - Email confirmation is ON in Supabase.
+- `DEMO_EMAIL` / `DEMO_PASSWORD` (server-only, never `NEXT_PUBLIC_`) power the
+  `/login` page's "View demo" affordance — a third, visually quiet action
+  (`app/login/login-form.tsx`) that signs into a preset account via
+  `demoLogin` (`app/login/actions.ts`), reading the credentials straight from
+  `process.env` server-side, never from form data. Unset either var and the
+  button doesn't render at all (checked in `app/login/page.tsx`), rather than
+  rendering and failing. Marcus creates the demo account and its sample data
+  in Supabase himself — nothing here does that.
 
 ## Migrations
 
@@ -205,7 +216,28 @@ and totals are math, not AI.
 
 ## Current state
 
-**Built and working:** net worth page (liquid/illiquid/liabilities, FX
+**Built and working:** the app renamed from "Finance App" to "MoneyLeft" in
+every user-facing spot — the login heading, the browser tab title/description
+(`app/layout.tsx`, previously still the unedited Next.js scaffold defaults),
+and a wordmark-adjacent logo mark (`components/ui/Logo.tsx`, exported from
+`components/ui`) — an M/L monogram, two bezier `<path>`s meeting at one point
+so it reads as a single continuous stroke with a colour changeover
+(`--text` to `--pos`), no fill/gradient/container; stroke width is a
+size-derived value via the `size` prop (thicker at icon scale, thinner at
+display scale), rendered only on `/login`. The `/login` wordmark itself is
+set in Space Grotesk bold (`app/layout.tsx`'s `spaceGrotesk`, exposed as the
+`font-wordmark` token in `globals.css`'s `@theme inline` block) — loaded via
+`next/font`, bold weight only, used nowhere else in the app — sized with a
+`clamp()`-based fluid `font-size` on the mark+wordmark's shared wrapper so
+the lockup's rendered width tracks the login card's own width (which is
+itself fluid below the `max-w-sm` cap, fixed at/above it), keeping the
+lockup matched to the email/password input width at any viewport. GitHub
+repo, `package.json`'s `name`, and the Vercel project deliberately were not
+renamed. Migration file headers still say "Finance App" in places -
+internal/historical text, not user-facing, left alone; `SETUP.md` (which
+also still said "Finance App," among other now-stale claims) was deleted
+outright rather than fixed, superseded by `README.md`; the net
+worth page (liquid/illiquid/liabilities, FX
 toggle, trend chart), its three summary boxes relabeled in plain language
 (Cash & Investments / Assets / Debts) and made tappable — Assets and Debts
 link out whole, Cash & Investments' two sub-lines link to `/cash` and

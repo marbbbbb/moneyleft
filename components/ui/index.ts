@@ -6,3 +6,4 @@ export { Select } from "./Select";
 export { Label } from "./Label";
 export { Field } from "./Field";
 export { Money } from "./Money";
+export { Logo } from "./Logo";
