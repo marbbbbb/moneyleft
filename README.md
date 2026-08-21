@@ -1,3 +1,5 @@
+# MoneyLeft
+
 A personal net worth tracker. It splits what you own into liquid and
 illiquid wealth, values illiquid assets (collectibles, vehicles, gold, and
 similar) with live market data where it exists and an AI estimate where it
