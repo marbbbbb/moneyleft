@@ -14,8 +14,15 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - image assets
+     * - robots.txt / sitemap.xml (well-known crawler files)
+     * - google*.html (Search Console site-verification files)
+     * - any path ending in a static-asset extension (images, .ico, .txt,
+     *   .xml, .html, .webmanifest) — these are files under /public and must
+     *   be served directly, never redirected to /login.
+     *
+     * App routes (/dashboard, /transactions, /settings, ...) have no file
+     * extension, so auth protection for them is unchanged.
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|google.*\\.html$|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml|html|webmanifest)$).*)",
   ],
 };
