@@ -8,7 +8,10 @@ import { normalizeCategory } from "@/lib/categories";
 import { SUPPORTED_CURRENCIES } from "@/lib/tickers";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-type ActionState = { error?: string };
+// `ok` is an explicit success marker for the QR review sheet, which has no
+// redirect to navigate on and cannot tell an empty `{}` apart from the
+// initial useActionState state. The manual TransactionForm never reads it.
+type ActionState = { error?: string; ok?: true; duplicateTransactionId?: string };
 
 const FREQUENCIES = ["weekly", "monthly", "yearly"];
 
@@ -17,6 +20,34 @@ function parseCurrency(formData: FormData): string | null {
   const currency = String(formData.get("currency") ?? "").trim().toUpperCase();
   if (!(SUPPORTED_CURRENCIES as readonly string[]).includes(currency)) return null;
   return currency;
+}
+
+// Extra columns written only when a transaction comes from the QR-scan review
+// sheet (migration 016). The manual add-transaction form sends none of these
+// fields, so parseEInvoiceFields returns null and the insert below is
+// byte-for-byte what it has always been (source then defaults to 'manual' in
+// the DB). When source === 'qr_scan', all four e-invoice columns are merged in.
+type EInvoiceInsert = {
+  source: "qr_scan";
+  einvoice_number: string | null;
+  einvoice_date: string | null;
+  einvoice_random_code: string | null;
+  einvoice_seller_id: string | null;
+};
+
+function parseEInvoiceFields(formData: FormData): EInvoiceInsert | null {
+  if (formData.get("source") !== "qr_scan") return null;
+  const str = (k: string) => {
+    const v = String(formData.get(k) ?? "").trim();
+    return v || null;
+  };
+  return {
+    source: "qr_scan",
+    einvoice_number: str("einvoice_number"),
+    einvoice_date: str("einvoice_date"),
+    einvoice_random_code: str("einvoice_random_code"),
+    einvoice_seller_id: str("einvoice_seller_id"),
+  };
 }
 
 // Distinct categories the user already uses (one display spelling per case-set).
@@ -59,6 +90,8 @@ export async function addTransaction(
   const supabase = await createClient();
   const category = normalizeCategory(rawCategory, await fetchCategories(supabase));
 
+  const einvoice = parseEInvoiceFields(formData);
+
   const { error } = await supabase.from("transactions").insert({
     date,
     amount: Math.abs(amount),
@@ -66,8 +99,26 @@ export async function addTransaction(
     note: note || null,
     type,
     currency,
+    ...(einvoice ?? {}),
   });
-  if (error) return { error: error.message };
+  if (error) {
+    // The partial unique index (user_id, einvoice_number) from migration 016
+    // rejects a second scan of the same receipt. Surface that as a state the
+    // review sheet can recognise - "Already scanned", with a link to the
+    // original - rather than a raw Postgres error string.
+    if (error.code === "23505" && einvoice?.einvoice_number) {
+      const { data: existing } = await supabase
+        .from("transactions")
+        .select("id")
+        .eq("einvoice_number", einvoice.einvoice_number)
+        .maybeSingle();
+      return {
+        error: "Already scanned.",
+        duplicateTransactionId: existing?.id ?? undefined,
+      };
+    }
+    return { error: error.message };
+  }
 
   // If marked recurring, store a template dated one period out; the catch-up
   // engine materializes future occurrences from there.
@@ -95,7 +146,7 @@ export async function addTransaction(
   }
 
   revalidatePath("/transactions");
-  return {};
+  return { ok: true };
 }
 
 export async function updateTransaction(

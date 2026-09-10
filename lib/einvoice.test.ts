@@ -38,6 +38,32 @@ test("parses every field of a well-formed QR", () => {
   });
 });
 
+// A real left-QR string captured from a printed dian zi fa piao zheng ming
+// lian (Ri Yao Ben Pu, 2026-05-27). 114 chars: the 77-char header followed by
+// an item-detail tail we deliberately do not parse in this phase.
+const REAL =
+  "BF029664821150527983800000081000000870000000086382689mdWcSgmVZI0A37AAq2oFxw==:**********:1:1:1:422222v:1日藥本舖:1:135";
+
+test("parses a real receipt's header exactly", () => {
+  assert.equal(REAL.length, 114);
+  assert.deepEqual(parseEInvoiceQR(REAL), {
+    invoiceNumber: "BF02966482",
+    date: "2026-05-27",
+    randomCode: "9838",
+    salesAmountExTax: 129,
+    totalAmount: 135,
+    buyerId: null,
+    sellerId: "86382689",
+  });
+});
+
+test("a 114-char input parses identically to its first 77 chars (tail ignored, not rejected)", () => {
+  const full = parseEInvoiceQR(REAL);
+  const headerOnly = parseEInvoiceQR(REAL.slice(0, 77));
+  assert.notEqual(full, null);
+  assert.deepEqual(full, headerOnly);
+});
+
 test("amount fields are decoded as hexadecimal, not decimal", () => {
   // "0000000A" is 10 in hex; a decimal reading would give 0 or throw.
   const raw =
@@ -109,11 +135,11 @@ test("returns null on non-hex amount fields", () => {
 });
 
 test("never throws on junk input", () => {
-  // @ts-expect-error - deliberately wrong types
+  // @ts-expect-error - callers in JS / untyped code could pass a non-string
   assert.equal(parseEInvoiceQR(null), null);
-  // @ts-expect-error
+  // @ts-expect-error - callers in JS / untyped code could pass a non-string
   assert.equal(parseEInvoiceQR(undefined), null);
-  // @ts-expect-error
+  // @ts-expect-error - callers in JS / untyped code could pass a non-string
   assert.equal(parseEInvoiceQR(12345), null);
   assert.equal(parseEInvoiceQR("!@#$%^&*()".repeat(20)), null);
 });

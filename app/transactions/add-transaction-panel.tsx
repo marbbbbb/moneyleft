@@ -1,8 +1,15 @@
 "use client";
 
 import { useState, type ComponentProps } from "react";
+import Link from "next/link";
 import { Button, Card } from "@/components/ui";
 import { TransactionForm } from "./transaction-form";
+
+// <Button variant="secondary"> styling on a real <a> (see MANAGE_LINK_CLASS in
+// app/dashboard/page.tsx) - a <button> inside a <Link> is invalid HTML for
+// pure navigation.
+const SECONDARY_LINK =
+  "inline-flex items-center justify-center px-[var(--sp-3)] py-[var(--sp-2)] rounded-[var(--r-sm)] text-[length:var(--t-sm)] font-medium bg-[var(--surface)] text-[var(--text)] border border-[var(--border)]";
 
 // Collapsed by default so the ledger — not the occasional "add" action —
 // is what greets the user. The form stays mounted at all times (just
@@ -20,15 +27,20 @@ export function AddTransactionPanel({
 
   return (
     <div>
-      <Button
-        type="button"
-        variant="secondary"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        aria-controls="add-transaction-panel"
-      >
-        {open ? "Close" : "+ Add a transaction"}
-      </Button>
+      <div className="flex flex-wrap items-center gap-[var(--sp-2)]">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          aria-controls="add-transaction-panel"
+        >
+          {open ? "Close" : "+ Add a transaction"}
+        </Button>
+        <Link href="/transactions/scan" className={SECONDARY_LINK}>
+          Scan receipt
+        </Link>
+      </div>
 
       <div
         id="add-transaction-panel"
