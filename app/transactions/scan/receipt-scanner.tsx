@@ -56,11 +56,21 @@ function CameraStage({ onDetect }: { onDetect: (p: ParsedInvoice) => void }) {
   // size once it's known. Defaults keep a sane box before metadata loads.
   const [guide, setGuide] = useState({ x: 15, y: 15 });
 
+  // TEMPORARY on-screen debug log - iOS Safari can't be console-inspected on
+  // device. Remove once the blank-screen issue is understood.
+  const [debug, setDebug] = useState<string[]>([]);
+  const dbg = (line: string) =>
+    setDebug((prev) => [...prev, `${prev.length + 1}. ${line}`]);
+
   const syncGuide = () => {
     const video = videoRef.current;
     if (!video) return;
     const vw = video.videoWidth;
     const vh = video.videoHeight;
+    dbg(
+      `loadedmetadata: readyState=${video.readyState} videoWidth=${vw} videoHeight=${vh} ` +
+        `paused=${video.paused} currentTime=${video.currentTime.toFixed(2)}`,
+    );
     if (!vw || !vh) return;
     const side = CROP_FRACTION * Math.min(vw, vh);
     setGuide({
@@ -99,6 +109,17 @@ function CameraStage({ onDetect }: { onDetect: (p: ParsedInvoice) => void }) {
 
       const video = videoRef.current;
       const canvas = canvasRef.current;
+
+      // Heartbeat every ~120 ticks (~4s): proves the rAF loop is alive and
+      // shows what state the <video> is stuck in.
+      if (tick % 120 === 0 && video) {
+        dbg(
+          `loop tick ${tick}: readyState=${video.readyState} ` +
+            `${video.videoWidth}x${video.videoHeight} paused=${video.paused} ` +
+            `currentTime=${video.currentTime.toFixed(2)}`,
+        );
+      }
+
       if (!video || !canvas || video.readyState < video.HAVE_CURRENT_DATA) return;
 
       const vw = video.videoWidth;
@@ -130,6 +151,12 @@ function CameraStage({ onDetect }: { onDetect: (p: ParsedInvoice) => void }) {
     };
 
     const start = async () => {
+      dbg(
+        `mediaDevices=${!!navigator.mediaDevices} ` +
+          `getUserMedia=${!!navigator.mediaDevices?.getUserMedia} ` +
+          `isSecureContext=${typeof window !== "undefined" ? window.isSecureContext : "n/a"}`,
+      );
+
       if (typeof window !== "undefined" && !window.isSecureContext) {
         setError("insecure");
         return;
@@ -147,8 +174,17 @@ function CameraStage({ onDetect }: { onDetect: (p: ParsedInvoice) => void }) {
           },
           audio: false,
         });
+        const track = stream.getVideoTracks()[0];
+        const s = track?.getSettings?.() ?? {};
+        dbg(
+          `getUserMedia OK: tracks=${stream.getTracks().length} ` +
+            `track.readyState=${track?.readyState} ` +
+            `settings=${s.width}x${s.height}@${s.frameRate ?? "?"} facing=${s.facingMode ?? "?"}`,
+        );
       } catch (err) {
-        const name = (err as DOMException | undefined)?.name;
+        const e = err as DOMException | undefined;
+        dbg(`getUserMedia FAILED: name=${e?.name ?? "?"} message=${e?.message ?? "?"}`);
+        const name = e?.name;
         if (name === "NotAllowedError" || name === "SecurityError") setError("denied");
         else if (name === "NotFoundError" || name === "DevicesNotFoundError")
           setError("no-camera");
@@ -162,23 +198,49 @@ function CameraStage({ onDetect }: { onDetect: (p: ParsedInvoice) => void }) {
       }
 
       const video = videoRef.current;
-      if (!video) return;
+      if (!video) {
+        dbg("videoRef.current is null - <video> not mounted");
+        return;
+      }
       video.srcObject = stream;
       video.muted = true; // belt-and-braces: the JSX `muted` prop is unreliable
+      dbg(`srcObject set; calling play(). readyState=${video.readyState}`);
       try {
         await video.play();
-      } catch {
-        // Autoplay may reject; muted + playsInline make that rare, and
-        // scanFrame tolerates a not-yet-playing video.
+        dbg(
+          `play() RESOLVED. readyState=${video.readyState} ` +
+            `paused=${video.paused} ${video.videoWidth}x${video.videoHeight}`,
+        );
+      } catch (err) {
+        const e = err as DOMException | undefined;
+        dbg(`play() REJECTED: name=${e?.name ?? "?"} message=${e?.message ?? "?"}`);
       }
       raf = requestAnimationFrame(scanFrame);
+
+      // One delayed snapshot: if the feed is really running, dimensions and a
+      // non-zero currentTime should have appeared by now.
+      window.setTimeout(() => {
+        if (stopped) return;
+        const v = videoRef.current;
+        if (!v) return;
+        dbg(
+          `+1.5s: readyState=${v.readyState} paused=${v.paused} ` +
+            `${v.videoWidth}x${v.videoHeight} currentTime=${v.currentTime.toFixed(2)}`,
+        );
+      }, 1500);
     };
 
     void start();
     return stopEverything;
   }, [onDetect]);
 
-  if (error) return <CameraFallback error={error} />;
+  if (error)
+    return (
+      <div className="flex flex-col gap-[var(--sp-3)]">
+        <CameraFallback error={error} />
+        <DebugPanel lines={debug} />
+      </div>
+    );
 
   return (
     <Card className="flex flex-col gap-[var(--sp-3)]">
@@ -189,7 +251,7 @@ function CameraStage({ onDetect }: { onDetect: (p: ParsedInvoice) => void }) {
           muted
           playsInline
           onLoadedMetadata={syncGuide}
-          className="block w-full"
+          className="block w-full min-h-[40vh]"
         />
         <div
           aria-hidden
@@ -202,6 +264,7 @@ function CameraStage({ onDetect }: { onDetect: (p: ParsedInvoice) => void }) {
           }}
         />
       </div>
+      <DebugPanel lines={debug} />
       <canvas ref={canvasRef} className="hidden" />
       <p className="text-center text-[length:var(--t-sm)] text-[var(--text-muted)]">
         Point the camera at the left QR code on the receipt.
@@ -213,6 +276,21 @@ function CameraStage({ onDetect }: { onDetect: (p: ParsedInvoice) => void }) {
         Enter it manually instead
       </Link>
     </Card>
+  );
+}
+
+// TEMPORARY - on-device diagnostics for the blank-screen bug. Delete with the
+// `debug`/`dbg` state in CameraStage once resolved.
+function DebugPanel({ lines }: { lines: string[] }) {
+  return (
+    <div className="rounded-[var(--r-sm)] border border-[var(--border)] bg-[var(--surface-2)] p-[var(--sp-2)]">
+      <p className="mb-[var(--sp-1)] text-[length:var(--t-xs)] font-medium text-[var(--text-muted)]">
+        camera debug
+      </p>
+      <pre className="overflow-x-auto whitespace-pre-wrap break-words text-[11px] leading-snug text-[var(--text)]">
+        {lines.length ? lines.join("\n") : "(no events yet)"}
+      </pre>
+    </div>
   );
 }
 
