@@ -135,7 +135,8 @@ is applied ad-hoc via className wherever a NUMERIC FIGURE renders — always
 inside `Money` (`components/ui/Money.tsx`, which also scopes `tracking-tight`
 to its own `size="2xl"` — checked visually, JetBrains Mono reads loose at
 display size but is fine smaller), plus the two mixed-currency raw-number
-fallback spans in `app/dashboard/page.tsx` and every figure in
+fallback spans in `app/dashboard/page.tsx`, the category row figure in
+`app/dashboard/category-disclosure.tsx`, and every figure in
 `app/net-worth-view.tsx` (which predates the token system and isn't on it
 otherwise — still raw Tailwind classes and its own local `money()` formatter,
 just with `font-mono` added to each figure). Never applied to labels,
@@ -152,10 +153,56 @@ wanting one render a sibling `<p>` right after it — see `app/dashboard`,
 `Input`, `Select`, `Label`, `Field`, `Money`.
 
 Only some pages are on this system: dashboard, transactions, onboarding,
-more, plan, settings-shell. Cash, holdings, liabilities, assets, portfolio,
-reminders, and every edit/detail sub-page are still original unstyled
-markup. That's expected — pages get restyled one at a time, not a bug to fix
-in passing.
+more, login. `/plan` and `/settings` are on-system as page **shells** only —
+`app/settings/rules-form.tsx` (rendered at `/plan`) and
+`app/settings/category-merge.tsx` (rendered at `/settings`) are not, and
+still use raw Tailwind grays. Cash, holdings, liabilities, assets, portfolio,
+reminders, and every edit/detail sub-page's *form* is still original unstyled
+markup, even where the page shell around that form has been migrated (see
+Token migration checklist below) — the shell and the form inside it can be
+on different sides of this line. That's expected — pages get restyled one at
+a time, not a bug to fix in passing.
+
+### Token migration checklist
+
+Design-token migration (started as "batch A") tracked here so this list
+doesn't silently drift from what's on disk. Update it whenever a batch lands.
+
+**Done (batch A):**
+- Dead scaffold tokens `--background`/`--foreground` removed from
+  `app/globals.css` (confirmed unused first).
+- `app/login/login-form.tsx` and `app/login/page.tsx` — full migration onto
+  `components/ui` (`Field`, `Input`, `Button`) and tokens.
+- Edit-page **shells** only — `app/cash/[id]/edit/page.tsx`,
+  `app/holdings/[id]/edit/page.tsx`, `app/liabilities/[id]/edit/page.tsx`,
+  `app/assets/[id]/edit/page.tsx`, `app/transactions/[id]/edit/page.tsx` — now
+  use `PageHeader` and token spacing instead of raw `text-2xl font-semibold`
+  and raw `gap-8 p-4 sm:p-6`. The form components they render are unchanged.
+- `app/reminders-nav-link.tsx`'s unread badge — `var(--neg)`,
+  `var(--accent-fg)`, `var(--t-xs)` in place of `bg-red-600`/`text-white`/
+  `text-[10px]`.
+
+**Batch B (not started) — form components behind an already-migrated shell:**
+- `app/settings/rules-form.tsx` (rendered at `/plan`)
+- `app/settings/category-merge.tsx` (rendered at `/settings`)
+- `app/cash/cash-form.tsx`
+- `app/holdings/holding-form.tsx`
+- `app/liabilities/liability-form.tsx`
+- `app/assets/asset-form.tsx`
+- `app/assets/[id]/edit/asset-edit-form.tsx`
+- `app/assets/[id]/valuation-form.tsx`
+- `app/assets/[id]/estimate-button.tsx`
+
+**Batch C (not started) — pages with no on-system shell yet:**
+- `app/page.tsx` / `app/net-worth-view.tsx` / `app/net-worth-trend.tsx` /
+  `app/liquid-illiquid-pie.tsx` (net worth page)
+- `app/cash/page.tsx`
+- `app/holdings/page.tsx`
+- `app/liabilities/page.tsx`
+- `app/assets/page.tsx`
+- `app/assets/[id]/page.tsx` / `app/assets/[id]/photo-uploader.tsx`
+- `app/portfolio/page.tsx` / `app/portfolio/portfolio-view.tsx`
+- `app/reminders/page.tsx` / `app/reminders/auto-check.tsx`
 
 ## Navigation
 

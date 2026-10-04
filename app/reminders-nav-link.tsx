@@ -25,7 +25,7 @@ export async function RemindersNavLink({
       {unread > 0 && (
         <span
           aria-label={`${unread} unread reminder${unread === 1 ? "" : "s"}`}
-          className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold leading-none text-white"
+          className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[var(--neg)] px-1 text-[length:var(--t-xs)] font-semibold leading-none text-[var(--accent-fg)]"
         >
           {unread > 9 ? "9+" : unread}
         </span>

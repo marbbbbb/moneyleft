@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { updateHolding } from "../../actions";
 import { HoldingForm } from "../../holding-form";
+import { PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -22,10 +23,8 @@ export default async function EditHoldingPage({
   if (!holding) notFound();
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-4 sm:p-6">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold">Edit holding</h1>
-      </header>
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-[var(--sp-6)] p-[var(--sp-4)] sm:p-[var(--sp-6)]">
+      <PageHeader title="Edit holding" />
 
       <HoldingForm
         action={updateHolding}

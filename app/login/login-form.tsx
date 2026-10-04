@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { login, signup, demoLogin } from "./actions";
+import { Button, Field, Input } from "@/components/ui";
 
 const initialState: { error?: string; message?: string } = {};
 
@@ -24,61 +25,65 @@ export function LoginForm({ demoAvailable }: { demoAvailable: boolean }) {
   const pending = loginPending || signupPending || demoPending;
 
   return (
-    <form className="flex flex-col gap-4">
-      <label className="flex flex-col gap-1 text-sm">
-        Email
-        <input
+    <form className="flex flex-col gap-[var(--sp-4)]">
+      <Field label="Email" htmlFor="login-email">
+        <Input
+          id="login-email"
           name="email"
           type="email"
           required
           autoComplete="email"
-          className="rounded-md border border-gray-300 px-3 py-2 text-base dark:border-gray-700 dark:bg-gray-900"
         />
-      </label>
+      </Field>
 
-      <label className="flex flex-col gap-1 text-sm">
-        Password
-        <input
+      <Field label="Password" htmlFor="login-password">
+        <Input
+          id="login-password"
           name="password"
           type="password"
           required
           minLength={6}
           autoComplete="current-password"
-          className="rounded-md border border-gray-300 px-3 py-2 text-base dark:border-gray-700 dark:bg-gray-900"
         />
-      </label>
+      </Field>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {message && <p className="text-sm text-green-600">{message}</p>}
+      {error && (
+        <p className="text-[length:var(--t-sm)] text-[var(--neg)]">{error}</p>
+      )}
+      {message && (
+        <p className="text-[length:var(--t-sm)] text-[var(--pos)]">{message}</p>
+      )}
 
-      <div className="flex gap-3">
-        <button
+      <div className="flex gap-[var(--sp-3)]">
+        <Button
           formAction={loginAction}
           disabled={pending}
-          className="flex-1 rounded-md bg-black min-h-11 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+          variant="primary"
+          className="min-h-11 flex-1 disabled:opacity-50"
         >
           {loginPending ? "Signing in…" : "Sign in"}
-        </button>
-        <button
+        </Button>
+        <Button
           formAction={signupAction}
           disabled={pending}
-          className="flex-1 rounded-md border border-gray-300 min-h-11 px-4 py-2 text-sm font-medium disabled:opacity-50 dark:border-gray-700"
+          variant="secondary"
+          className="min-h-11 flex-1 disabled:opacity-50"
         >
           {signupPending ? "Creating…" : "Sign up"}
-        </button>
+        </Button>
       </div>
 
       {demoAvailable && (
-        <div className="flex flex-col items-center gap-1 text-center">
+        <div className="flex flex-col items-center gap-[var(--sp-1)] text-center">
           <button
             formAction={demoAction}
             formNoValidate
             disabled={pending}
-            className="min-h-11 px-2 text-sm text-gray-500 underline underline-offset-2 disabled:opacity-50 dark:text-gray-400"
+            className="min-h-11 px-2 text-[length:var(--t-sm)] text-[var(--text-muted)] underline underline-offset-2 disabled:opacity-50"
           >
             {demoPending ? "Signing in…" : "View demo"}
           </button>
-          <p className="text-xs text-gray-400 dark:text-gray-500">
+          <p className="text-[length:var(--t-xs)] text-[var(--text-subtle)]">
             Sample data. Sign up to track your own.
           </p>
         </div>

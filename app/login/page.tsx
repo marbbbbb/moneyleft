@@ -35,7 +35,7 @@ export default async function LoginPage() {
             MoneyLeft
           </h1>
         </div>
-        <p className="mb-6 text-sm text-gray-500">
+        <p className="mb-[var(--sp-6)] text-[length:var(--t-sm)] text-[var(--text-muted)]">
           Sign in or create an account to continue.
         </p>
         <LoginForm demoAvailable={demoAvailable} />
