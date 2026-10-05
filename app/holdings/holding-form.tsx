@@ -2,9 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { deriveCurrency, SUPPORTED_CURRENCIES } from "@/lib/tickers";
-
-const inputClass =
-  "rounded-md border border-gray-300 px-3 py-2 text-base dark:border-gray-700 dark:bg-gray-900";
+import { Button, Field, Input, Select } from "@/components/ui";
 
 type FormState = { error?: string };
 type FormAction = (prev: FormState, formData: FormData) => Promise<FormState>;
@@ -54,85 +52,84 @@ export function HoldingForm({
     <form ref={formRef} action={formAction} className="flex flex-col gap-3">
       {initial && <input type="hidden" name="id" value={initial.id} />}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm">
-          Ticker
-          <input
+        <Field label="Ticker" htmlFor="holding-ticker">
+          <Input
+            id="holding-ticker"
             name="ticker"
             type="text"
             required
             placeholder="e.g. AAPL or 0056"
             value={ticker}
             onChange={(e) => onTickerChange(e.target.value)}
-            className={inputClass}
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Shares
-          <input
+        </Field>
+        <Field label="Shares" htmlFor="holding-shares">
+          <Input
+            id="holding-shares"
             name="shares"
             type="number"
             step="any"
             required
             defaultValue={initial?.shares}
             placeholder="0"
-            className={inputClass}
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Cost basis (per share)
-          <input
+        </Field>
+        <Field label="Cost basis (per share)" htmlFor="holding-cost-basis">
+          <Input
+            id="holding-cost-basis"
             name="cost_basis"
             type="number"
             step="0.01"
             required
             defaultValue={initial?.cost_basis}
             placeholder="0.00"
-            className={inputClass}
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Date bought
-          <input
+        </Field>
+        <Field label="Date bought" htmlFor="holding-date-bought">
+          <Input
+            id="holding-date-bought"
             name="date_bought"
             type="date"
             required
             defaultValue={initial?.date_bought}
-            className={inputClass}
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Currency
-          <select
+        </Field>
+        <Field label="Currency" htmlFor="holding-currency">
+          <Select
+            id="holding-currency"
             name="currency"
             value={currency}
             onChange={(e) => {
               setCurrency(e.target.value);
               setCurrencyTouched(true);
             }}
-            className={inputClass}
           >
             {SUPPORTED_CURRENCIES.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
-          </select>
-          <span className="text-xs text-gray-500">
+          </Select>
+          <p className="mt-[var(--sp-1)] text-[length:var(--t-xs)] text-[var(--text-muted)]">
             {currencyTouched
               ? "Manually set"
               : `Auto-set from ticker (${deriveCurrency(ticker)})`}
-          </span>
-        </label>
+          </p>
+        </Field>
       </div>
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && (
+        <p className="text-[length:var(--t-sm)] text-[var(--neg)]">{state.error}</p>
+      )}
 
-      <button
+      <Button
+        type="submit"
+        variant="primary"
         disabled={pending}
-        className="min-h-11 self-start rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+        className="self-start disabled:opacity-50"
       >
         {pending ? "Saving…" : (submitLabel ?? "Add holding")}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -4,7 +4,9 @@ import { useActionState, useState } from "react";
 import { updateAsset } from "../../actions";
 import { ASSET_CATEGORIES } from "@/lib/assets";
 import { SUPPORTED_CURRENCIES } from "@/lib/tickers";
+import { Button, Field, Input, Select } from "@/components/ui";
 
+// Only the <textarea> below still uses this: components/ui has no Textarea.
 const inputClass =
   "rounded-md border border-gray-300 px-3 py-2 text-base dark:border-gray-700 dark:bg-gray-900";
 
@@ -33,108 +35,99 @@ export function AssetEditForm({ initial }: { initial: AssetEditInitial }) {
     <form action={action} className="flex flex-col gap-3">
       <input type="hidden" name="id" value={initial.id} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm">
-          Name
-          <input name="name" type="text" required defaultValue={initial.name} className={inputClass} />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Category
-          <select
+        <Field label="Name" htmlFor="asset-edit-name">
+          <Input id="asset-edit-name" name="name" type="text" required defaultValue={initial.name} />
+        </Field>
+        <Field label="Category" htmlFor="asset-edit-category">
+          <Select
+            id="asset-edit-category"
             name="category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className={inputClass}
           >
             {ASSET_CATEGORIES.map((c) => (
               <option key={c.value} value={c.value}>
                 {c.label}
               </option>
             ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Currency
-          <select name="currency" defaultValue={initial.currency} className={inputClass}>
+          </Select>
+        </Field>
+        <Field label="Currency" htmlFor="asset-edit-currency">
+          <Select id="asset-edit-currency" name="currency" defaultValue={initial.currency}>
             {SUPPORTED_CURRENCIES.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Purchase price
-          <input
+          </Select>
+        </Field>
+        <Field label="Purchase price" htmlFor="asset-edit-purchase-price">
+          <Input
+            id="asset-edit-purchase-price"
             name="purchase_price"
             type="number"
             step="0.01"
             min="0"
             required
             defaultValue={initial.acquisition_cost ?? undefined}
-            className={inputClass}
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Purchase date
-          <input
+        </Field>
+        <Field label="Purchase date" htmlFor="asset-edit-purchase-date">
+          <Input
+            id="asset-edit-purchase-date"
             name="purchase_date"
             type="date"
             required
             defaultValue={initial.acquisition_date ?? undefined}
-            className={inputClass}
           />
-        </label>
+        </Field>
       </div>
 
       {category === "precious_metal" && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <label className="flex flex-col gap-1 text-sm">
-            Metal
-            <select name="metal" defaultValue={details.metal ?? "gold"} className={inputClass}>
+          <Field label="Metal" htmlFor="asset-edit-metal">
+            <Select id="asset-edit-metal" name="metal" defaultValue={details.metal ?? "gold"}>
               <option value="gold">Gold</option>
               <option value="silver">Silver</option>
               <option value="platinum">Platinum</option>
               <option value="palladium">Palladium</option>
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Weight (grams)
-            <input
+            </Select>
+          </Field>
+          <Field label="Weight (grams)" htmlFor="asset-edit-weight-grams">
+            <Input
+              id="asset-edit-weight-grams"
               name="weight_grams"
               type="number"
               step="any"
               min="0"
               defaultValue={details.weight_grams}
-              className={inputClass}
             />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Purity
-            <input
+          </Field>
+          <Field label="Purity" htmlFor="asset-edit-purity">
+            <Input
+              id="asset-edit-purity"
               name="purity"
               type="number"
               step="any"
               min="0"
               max="1"
               defaultValue={details.purity ?? 0.999}
-              className={inputClass}
             />
-          </label>
+          </Field>
         </div>
       )}
 
       {category === "vehicle" && (
-        <label className="flex flex-col gap-1 text-sm">
-          Mileage (optional, km)
-          <input
+        <Field label="Mileage (optional, km)" htmlFor="asset-edit-mileage">
+          <Input
+            id="asset-edit-mileage"
             name="mileage"
             type="number"
             step="any"
             min="0"
             defaultValue={details.mileage}
-            className={inputClass}
           />
-        </label>
+        </Field>
       )}
 
       <label className="flex flex-col gap-1 text-sm">
@@ -147,14 +140,18 @@ export function AssetEditForm({ initial }: { initial: AssetEditInitial }) {
         />
       </label>
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && (
+        <p className="text-[length:var(--t-sm)] text-[var(--neg)]">{state.error}</p>
+      )}
 
-      <button
+      <Button
+        type="submit"
+        variant="primary"
         disabled={pending}
-        className="min-h-11 self-start rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+        className="self-start disabled:opacity-50"
       >
         {pending ? "Saving…" : "Save changes"}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { addCashAccount, deleteCashAccount } from "./actions";
 import { CashForm } from "./cash-form";
+import { Money, PageHeader } from "@/components/ui";
 
 type CashAccount = {
   id: string;
@@ -24,9 +25,7 @@ export default async function CashPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-4 sm:p-6">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold">Cash accounts</h1>
-      </header>
+      <PageHeader title="Cash accounts" />
 
       <section>
         <h2 className="mb-3 text-lg font-medium">Add an account</h2>
@@ -39,41 +38,39 @@ export default async function CashPage() {
         </h2>
 
         {error && (
-          <p className="text-sm text-red-600">
+          <p className="text-sm text-[var(--neg)]">
             Couldn&apos;t load accounts: {error.message}
           </p>
         )}
 
         {!error && accounts.length === 0 && (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-[var(--text-muted)]">
             No cash accounts yet — add one above.
           </p>
         )}
 
-        <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800">
+        <ul className="flex flex-col divide-y divide-[var(--border)]">
           {accounts.map((a) => (
             <li key={a.id} className="flex items-center justify-between py-3">
               <div className="flex flex-col">
                 <span className="font-medium">{a.name}</span>
-                <span className="text-sm text-gray-500">{a.account_type}</span>
+                <span className="text-sm text-[var(--text-muted)]">{a.account_type}</span>
               </div>
               <div className="flex shrink-0 items-center gap-3">
-                <span className="font-medium">
-                  {a.balance.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}{" "}
-                  {a.currency}
-                </span>
+                <Money
+                  amount={a.balance}
+                  currency={a.currency}
+                  className="font-medium"
+                />
                 <Link
                   href={`/cash/${a.id}/edit`}
-                  className="min-h-11 px-1 text-sm text-gray-500 hover:underline"
+                  className="min-h-11 px-1 text-sm text-[var(--text-muted)] hover:underline"
                 >
                   Edit
                 </Link>
                 <form action={deleteCashAccount}>
                   <input type="hidden" name="id" value={a.id} />
-                  <button className="min-h-11 px-1 text-sm text-red-600 hover:underline">
+                  <button className="min-h-11 px-1 text-sm text-[var(--neg)] hover:underline">
                     Delete
                   </button>
                 </form>

@@ -152,16 +152,15 @@ wanting one render a sibling `<p>` right after it — see `app/dashboard`,
 `app/plan`, `app/settings`), `Button` (primary/secondary/danger, one size),
 `Input`, `Select`, `Label`, `Field`, `Money`.
 
-Only some pages are on this system: dashboard, transactions, onboarding,
-more, login. `/plan` and `/settings` are on-system as page **shells** only —
-`app/settings/rules-form.tsx` (rendered at `/plan`) and
+Pages on this system: dashboard, transactions, onboarding, more, login, cash,
+holdings, liabilities, assets (list, detail, add/edit/valuation forms, estimate
+button), and the edit-page shells. `/plan` and `/settings` are on-system as
+page **shells** only — `app/settings/rules-form.tsx` (rendered at `/plan`) and
 `app/settings/category-merge.tsx` (rendered at `/settings`) are not, and
-still use raw Tailwind grays. Cash, holdings, liabilities, assets, portfolio,
-reminders, and every edit/detail sub-page's *form* is still original unstyled
-markup, even where the page shell around that form has been migrated (see
-Token migration checklist below) — the shell and the form inside it can be
-on different sides of this line. That's expected — pages get restyled one at
-a time, not a bug to fix in passing.
+still use raw Tailwind grays. Net worth (`/`), portfolio, reminders, and the
+asset photo uploader are still original unstyled markup (see Token migration
+checklist below). That's expected — pages get restyled one at a time, not a
+bug to fix in passing.
 
 ### Token migration checklist
 
@@ -182,25 +181,44 @@ doesn't silently drift from what's on disk. Update it whenever a batch lands.
   `var(--accent-fg)`, `var(--t-xs)` in place of `bg-red-600`/`text-white`/
   `text-[10px]`.
 
-**Batch B (not started) — form components behind an already-migrated shell:**
+**Done (batch B) — cash, holdings, assets, liabilities** (page, form, and
+every detail/edit/valuation sub-file; `Field`/`Input`/`Select`/`Button`/
+`PageHeader`/`Card`/`Money` plus tokens; no logic touched):
+- `app/cash/page.tsx`, `app/cash/cash-form.tsx`
+- `app/holdings/page.tsx`, `app/holdings/holding-form.tsx`
+- `app/assets/page.tsx`, `app/assets/asset-form.tsx`,
+  `app/assets/[id]/page.tsx`, `app/assets/[id]/edit/asset-edit-form.tsx`,
+  `app/assets/[id]/estimate-button.tsx`, `app/assets/[id]/valuation-form.tsx`
+- `app/liabilities/page.tsx`, `app/liabilities/liability-form.tsx`
+
+**Left behind inside batch B files (deliberate, needs a decision or a lib change):**
+- Raw `<textarea>` styled by a local `inputClass` (raw grays) in
+  `app/assets/asset-form.tsx` and `app/assets/[id]/edit/asset-edit-form.tsx` —
+  `components/ui` has no `Textarea`. Needs a `Textarea` component first.
+- `lib/assets.ts` returns raw color class strings (`confidenceClass`,
+  `sourceBadgeClass`, `changeColorClass`: green/amber/purple/blue/gray/red
+  tinted pills and gain/loss text). They render in `app/assets/page.tsx` and
+  `app/assets/[id]/page.tsx`. Fixing means changing `lib/` return values.
+- `app/assets/[id]/estimate-button.tsx` — `text-amber-700 dark:text-amber-500`
+  for the "daily cap hit" notice (no amber token).
+- Money-shaped figures left as text: the 0-decimal `formatRange` /
+  `formatAssetMoney` / `formatSignedMoney` output (assets list and detail; also
+  ranges), holdings' per-share cost basis inside its composite label, the
+  loan "Orig ..." line in `app/liabilities/page.tsx`, and the "Estimated
+  balance today" preview in `app/liabilities/liability-form.tsx` (swapping it
+  would orphan its local `money()` helper).
+- Raw spacing/layout and `text-lg font-medium` section headings on these pages
+  were left as is (the `<main>` still uses `gap-8 p-4 sm:p-6`, not the
+  `--sp-*` shell the edit pages use).
+
+**Batch B remainder (not started, outside the batch B file list):**
 - `app/settings/rules-form.tsx` (rendered at `/plan`)
 - `app/settings/category-merge.tsx` (rendered at `/settings`)
-- `app/cash/cash-form.tsx`
-- `app/holdings/holding-form.tsx`
-- `app/liabilities/liability-form.tsx`
-- `app/assets/asset-form.tsx`
-- `app/assets/[id]/edit/asset-edit-form.tsx`
-- `app/assets/[id]/valuation-form.tsx`
-- `app/assets/[id]/estimate-button.tsx`
 
 **Batch C (not started) — pages with no on-system shell yet:**
 - `app/page.tsx` / `app/net-worth-view.tsx` / `app/net-worth-trend.tsx` /
   `app/liquid-illiquid-pie.tsx` (net worth page)
-- `app/cash/page.tsx`
-- `app/holdings/page.tsx`
-- `app/liabilities/page.tsx`
-- `app/assets/page.tsx`
-- `app/assets/[id]/page.tsx` / `app/assets/[id]/photo-uploader.tsx`
+- `app/assets/[id]/photo-uploader.tsx`
 - `app/portfolio/page.tsx` / `app/portfolio/portfolio-view.tsx`
 - `app/reminders/page.tsx` / `app/reminders/auto-check.tsx`
 
@@ -308,8 +326,8 @@ currency picker, and every stored amount is
 labeled with its real currency instead of assumed.
 
 **In flight / unfinished:**
-- Cash, holdings, liabilities, assets, portfolio, reminders, and their
-  edit/detail sub-pages are still unstyled (see Design system).
+- Net worth, portfolio, reminders, the asset photo uploader, and the two
+  settings forms are still unstyled (see Token migration checklist).
 - Dashboard's per-category spending rows and vs-last-month delta line still
   assume a single currency (`SPENDING_CURRENCY = "TWD"`), even though the
   headline spending total and the Left-this-month figure now handle mixed

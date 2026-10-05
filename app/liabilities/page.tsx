@@ -4,6 +4,7 @@ import { liabilityTypeLabel } from "@/lib/liabilities";
 import { addLiability, deleteLiability } from "./actions";
 import { LiabilityForm } from "./liability-form";
 import { amortizationProgress, currentBalance } from "@/lib/amortization";
+import { Money, PageHeader } from "@/components/ui";
 
 type Liability = {
   id: string;
@@ -43,9 +44,7 @@ export default async function LiabilitiesPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-4 sm:p-6">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold">Liabilities</h1>
-      </header>
+      <PageHeader title="Liabilities" />
 
       <section>
         <h2 className="mb-3 text-lg font-medium">Add a debt</h2>
@@ -58,18 +57,18 @@ export default async function LiabilitiesPage() {
         </h2>
 
         {error && (
-          <p className="text-sm text-red-600">
+          <p className="text-sm text-[var(--neg)]">
             Couldn&apos;t load liabilities: {error.message}
           </p>
         )}
 
         {!error && liabilities.length === 0 && (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-[var(--text-muted)]">
             No debts yet — add one above.
           </p>
         )}
 
-        <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800">
+        <ul className="flex flex-col divide-y divide-[var(--border)]">
           {liabilities.map((l) => {
             // A no-op for kind='simple' (returns l.balance unchanged) — always
             // routing through here means there's exactly one balance display
@@ -82,7 +81,7 @@ export default async function LiabilitiesPage() {
                 <div className="flex min-w-0 flex-col">
                   <span className="truncate font-medium">{l.name}</span>
                   {progress ? (
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-[var(--text-muted)]">
                       Orig {money(l.original_principal ?? 0, l.currency)} ·{" "}
                       {progress.monthsElapsed} of {progress.termMonths} payments
                       made ·{" "}
@@ -93,25 +92,28 @@ export default async function LiabilitiesPage() {
                       years left
                     </span>
                   ) : (
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-[var(--text-muted)]">
                       {liabilityTypeLabel(l.liability_type)}
                       {l.interest_rate != null && ` · ${l.interest_rate}%`}
                     </span>
                   )}
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
-                  <span className="font-medium text-red-600">
-                    −{money(displayBalance, l.currency)}
-                  </span>
+                  <Money
+                    amount={-displayBalance}
+                    currency={l.currency}
+                    signed
+                    className="font-medium"
+                  />
                   <Link
                     href={`/liabilities/${l.id}/edit`}
-                    className="min-h-11 px-1 text-sm text-gray-500 hover:underline"
+                    className="min-h-11 px-1 text-sm text-[var(--text-muted)] hover:underline"
                   >
                     Edit
                   </Link>
                   <form action={deleteLiability}>
                     <input type="hidden" name="id" value={l.id} />
-                    <button className="min-h-11 px-1 text-sm text-red-600 hover:underline">
+                    <button className="min-h-11 px-1 text-sm text-[var(--neg)] hover:underline">
                       Delete
                     </button>
                   </form>

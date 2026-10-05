@@ -10,6 +10,7 @@ import {
 } from "@/lib/assets";
 import { deleteAsset } from "./actions";
 import { AssetForm } from "./asset-form";
+import { PageHeader } from "@/components/ui";
 
 type Asset = {
   id: string;
@@ -65,9 +66,7 @@ export default async function AssetsPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-4 sm:p-6">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold">Asset vault</h1>
-      </header>
+      <PageHeader title="Asset vault" />
 
       <section>
         <h2 className="mb-3 text-lg font-medium">Add an asset</h2>
@@ -78,18 +77,18 @@ export default async function AssetsPage() {
         <h2 className="mb-3 text-lg font-medium">Your assets ({assets.length})</h2>
 
         {error && (
-          <p className="text-sm text-red-600">
+          <p className="text-sm text-[var(--neg)]">
             Couldn&apos;t load assets: {error.message}
           </p>
         )}
 
         {!error && assets.length === 0 && (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-[var(--text-muted)]">
             No assets yet. Add one above and it flows into illiquid net worth.
           </p>
         )}
 
-        <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800">
+        <ul className="flex flex-col divide-y divide-[var(--border)]">
           {assets.map((a) => {
             const points = byAsset.get(a.id) ?? [];
             const latest = latestValuation(points);
@@ -103,7 +102,7 @@ export default async function AssetsPage() {
                   <Link href={`/assets/${a.id}`} className="font-medium hover:underline">
                     {a.name}
                   </Link>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-[var(--text-muted)]">
                     {assetCategoryLabel(a.category)}
                   </span>
                 </div>
@@ -139,12 +138,12 @@ export default async function AssetsPage() {
                         </span>
                       </>
                     ) : (
-                      <span className="text-sm text-gray-400">no valuation</span>
+                      <span className="text-sm text-[var(--text-subtle)]">no valuation</span>
                     )}
                   </div>
                   <form action={deleteAsset}>
                     <input type="hidden" name="id" value={a.id} />
-                    <button className="text-sm text-red-600 hover:underline">
+                    <button className="text-sm text-[var(--neg)] hover:underline">
                       Delete
                     </button>
                   </form>

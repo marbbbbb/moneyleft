@@ -4,9 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { addValuation } from "../actions";
 import { CONFIDENCE_LEVELS } from "@/lib/assets";
 import { SUPPORTED_CURRENCIES } from "@/lib/tickers";
-
-const inputClass =
-  "rounded-md border border-gray-300 px-3 py-2 text-base dark:border-gray-700 dark:bg-gray-900";
+import { Button, Field, Input, Select } from "@/components/ui";
 
 // Lets you record a wider estimated range at a chosen confidence — the same
 // shape an AI estimate will later produce.
@@ -28,62 +26,62 @@ export function ValuationForm({
     <form ref={formRef} action={action} className="flex flex-col gap-3">
       <input type="hidden" name="asset_id" value={assetId} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm">
-          Range low
-          <input
+        <Field label="Range low" htmlFor="valuation-value-low">
+          <Input
+            id="valuation-value-low"
             name="value_low"
             type="number"
             step="0.01"
             min="0"
             required
-            className={inputClass}
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Range high
-          <input
+        </Field>
+        <Field label="Range high" htmlFor="valuation-value-high">
+          <Input
+            id="valuation-value-high"
             name="value_high"
             type="number"
             step="0.01"
             min="0"
             required
-            className={inputClass}
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Confidence
-          <select name="confidence" defaultValue="high" className={inputClass}>
+        </Field>
+        <Field label="Confidence" htmlFor="valuation-confidence">
+          <Select id="valuation-confidence" name="confidence" defaultValue="high">
             {CONFIDENCE_LEVELS.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Currency
-          <select
+          </Select>
+        </Field>
+        <Field label="Currency" htmlFor="valuation-currency">
+          <Select
+            id="valuation-currency"
             name="currency"
             defaultValue={defaultCurrency}
-            className={inputClass}
           >
             {SUPPORTED_CURRENCIES.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
-          </select>
-        </label>
+          </Select>
+        </Field>
       </div>
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && (
+        <p className="text-[length:var(--t-sm)] text-[var(--neg)]">{state.error}</p>
+      )}
 
-      <button
+      <Button
+        type="submit"
+        variant="primary"
         disabled={pending}
-        className="self-start rounded-md bg-black min-h-11 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+        className="self-start disabled:opacity-50"
       >
         {pending ? "Saving…" : "Add valuation"}
-      </button>
+      </Button>
     </form>
   );
 }

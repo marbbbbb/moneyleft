@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { Card, PageHeader } from "@/components/ui";
 import {
   assetCategoryLabel,
   changeColorClass,
@@ -93,23 +94,23 @@ export default async function AssetDetailPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-4 sm:p-6">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">{asset.name}</h1>
-          <p className="text-sm text-gray-500">
-            {assetCategoryLabel(asset.category)}
-          </p>
-        </div>
-        <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-          <Link href={`/assets/${asset.id}/edit`} className="underline">
-            Edit
-          </Link>
-        </nav>
-      </header>
+      <div>
+        <PageHeader
+          title={asset.name}
+          nav={
+            <Link href={`/assets/${asset.id}/edit`} className="text-sm underline">
+              Edit
+            </Link>
+          }
+        />
+        <p className="text-sm text-[var(--text-muted)]">
+          {assetCategoryLabel(asset.category)}
+        </p>
+      </div>
 
       {/* Current value */}
-      <section className="rounded-lg border border-gray-200 p-5 dark:border-gray-800">
-        <p className="text-sm text-gray-500">Current value</p>
+      <Card>
+        <p className="text-sm text-[var(--text-muted)]">Current value</p>
         {current ? (
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <span className="text-2xl font-semibold">
@@ -127,10 +128,10 @@ export default async function AssetDetailPage({
             </span>
           </div>
         ) : (
-          <p className="mt-1 text-gray-400">No valuation yet.</p>
+          <p className="mt-1 text-[var(--text-subtle)]">No valuation yet.</p>
         )}
         {purchasePrice !== null && (
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-[var(--text-muted)]">
             Purchase price {formatAssetMoney(purchasePrice, asset.currency)}
             {asset.acquisition_date &&
               ` on ${new Date(asset.acquisition_date).toLocaleDateString()}`}
@@ -141,27 +142,27 @@ export default async function AssetDetailPage({
             {formatSignedMoney(change.absolute, asset.currency)}
             {change.pct !== null &&
               ` (${change.pct >= 0 ? "+" : "−"}${Math.abs(change.pct).toFixed(1)}%)`}{" "}
-            <span className="text-gray-500">since purchase</span>
+            <span className="text-[var(--text-muted)]">since purchase</span>
           </p>
         )}
         {asset.description && (
-          <p className="mt-3 whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-300">
+          <p className="mt-3 whitespace-pre-wrap text-sm text-[var(--text-muted)]">
             {asset.description}
           </p>
         )}
 
         {/* Reasoning + sources from the latest valuation (AI/market estimate). */}
         {current?.rationale && (
-          <div className="mt-4 rounded-md bg-gray-50 p-3 text-sm dark:bg-gray-900">
-            <p className="mb-1 font-medium text-gray-700 dark:text-gray-200">
+          <div className="mt-4 rounded-md bg-[var(--surface-2)] p-3 text-sm">
+            <p className="mb-1 font-medium text-[var(--text)]">
               How this was estimated
             </p>
-            <p className="whitespace-pre-wrap text-gray-600 dark:text-gray-300">
+            <p className="whitespace-pre-wrap text-[var(--text-muted)]">
               {current.rationale}
             </p>
             {current.sources && current.sources.length > 0 && (
               <div className="mt-2">
-                <p className="text-xs font-medium text-gray-500">Sources</p>
+                <p className="text-xs font-medium text-[var(--text-muted)]">Sources</p>
                 <ul className="mt-1 flex flex-col gap-0.5">
                   {current.sources.map((s, i) => (
                     <li key={i} className="truncate text-xs">
@@ -169,7 +170,7 @@ export default async function AssetDetailPage({
                         href={s.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline dark:text-blue-400"
+                        className="text-[var(--accent)] hover:underline"
                       >
                         {s.title || s.url}
                       </a>
@@ -182,7 +183,7 @@ export default async function AssetDetailPage({
         )}
 
         {current && isAiSource(current.source) && (
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-[var(--text-muted)]">
             ⚠️ AI estimate only — not financial advice. Get a professional
             appraisal before relying on this value.
           </p>
@@ -191,13 +192,13 @@ export default async function AssetDetailPage({
         <div className="mt-4">
           <EstimateButton assetId={asset.id} />
         </div>
-      </section>
+      </Card>
 
       {/* Photos */}
       <section>
         <h2 className="mb-3 text-lg font-medium">Photos</h2>
         {photos.length === 0 ? (
-          <p className="mb-3 text-sm text-gray-500">No photos yet.</p>
+          <p className="mb-3 text-sm text-[var(--text-muted)]">No photos yet.</p>
         ) : (
           <ul className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
             {photos.map((p) => (
@@ -210,13 +211,13 @@ export default async function AssetDetailPage({
                     className="aspect-square w-full rounded-md object-cover"
                   />
                 ) : (
-                  <div className="aspect-square w-full rounded-md bg-gray-200 dark:bg-gray-800" />
+                  <div className="aspect-square w-full rounded-md bg-[var(--surface-2)]" />
                 )}
                 <form action={deletePhoto}>
                   <input type="hidden" name="id" value={p.id} />
                   <input type="hidden" name="storage_path" value={p.storage_path} />
                   <input type="hidden" name="asset_id" value={asset.id} />
-                  <button className="text-xs text-red-600 hover:underline">
+                  <button className="text-xs text-[var(--neg)] hover:underline">
                     Remove
                   </button>
                 </form>
@@ -239,11 +240,11 @@ export default async function AssetDetailPage({
           Valuation history ({valuations.length})
         </h2>
         <ValueChart valuations={valuations} />
-        <ul className="mt-3 flex flex-col divide-y divide-gray-200 dark:divide-gray-800">
+        <ul className="mt-3 flex flex-col divide-y divide-[var(--border)]">
           {valuations.map((v) => (
             <li key={v.id} className="flex items-center justify-between py-2 text-sm">
               <span>{formatRange(v.value_low, v.value_high, v.currency)}</span>
-              <span className="flex items-center gap-2 text-gray-500">
+              <span className="flex items-center gap-2 text-[var(--text-muted)]">
                 <span
                   className={`rounded px-1.5 py-0.5 text-xs ${confidenceClass(v.confidence)}`}
                 >

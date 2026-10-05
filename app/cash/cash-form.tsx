@@ -3,9 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import { CASH_ACCOUNT_TYPES } from "@/lib/cash";
 import { SUPPORTED_CURRENCIES } from "@/lib/tickers";
-
-const inputClass =
-  "rounded-md border border-gray-300 px-3 py-2 text-base dark:border-gray-700 dark:bg-gray-900";
+import { Button, Field, Input, Select } from "@/components/ui";
 
 type FormState = { error?: string };
 type FormAction = (prev: FormState, formData: FormData) => Promise<FormState>;
@@ -39,67 +37,67 @@ export function CashForm({
     <form ref={formRef} action={formAction} className="flex flex-col gap-3">
       {initial && <input type="hidden" name="id" value={initial.id} />}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm">
-          Name
-          <input
+        <Field label="Name" htmlFor="cash-name">
+          <Input
+            id="cash-name"
             name="name"
             type="text"
             required
             defaultValue={initial?.name}
             placeholder="e.g. Cathay Savings"
-            className={inputClass}
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Type
-          <select
+        </Field>
+        <Field label="Type" htmlFor="cash-account-type">
+          <Select
+            id="cash-account-type"
             name="account_type"
             defaultValue={initial?.account_type ?? "checking"}
-            className={inputClass}
           >
             {CASH_ACCOUNT_TYPES.map((t) => (
               <option key={t} value={t}>
                 {t}
               </option>
             ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Balance
-          <input
+          </Select>
+        </Field>
+        <Field label="Balance" htmlFor="cash-balance">
+          <Input
+            id="cash-balance"
             name="balance"
             type="number"
             step="0.01"
             required
             defaultValue={initial?.balance}
             placeholder="0.00"
-            className={inputClass}
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Currency
-          <select
+        </Field>
+        <Field label="Currency" htmlFor="cash-currency">
+          <Select
+            id="cash-currency"
             name="currency"
             defaultValue={initial?.currency ?? "TWD"}
-            className={inputClass}
           >
             {SUPPORTED_CURRENCIES.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
-          </select>
-        </label>
+          </Select>
+        </Field>
       </div>
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && (
+        <p className="text-[length:var(--t-sm)] text-[var(--neg)]">{state.error}</p>
+      )}
 
-      <button
+      <Button
+        type="submit"
+        variant="primary"
         disabled={pending}
-        className="min-h-11 self-start rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+        className="self-start disabled:opacity-50"
       >
         {pending ? "Saving…" : (submitLabel ?? "Add account")}
-      </button>
+      </Button>
     </form>
   );
 }

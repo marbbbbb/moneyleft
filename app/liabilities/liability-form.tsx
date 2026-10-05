@@ -4,9 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { LIABILITY_TYPES } from "@/lib/liabilities";
 import { SUPPORTED_CURRENCIES } from "@/lib/tickers";
 import { currentBalance } from "@/lib/amortization";
-
-const inputClass =
-  "rounded-md border border-gray-300 px-3 py-2 text-base dark:border-gray-700 dark:bg-gray-900";
+import { Button, Card, Field, Input, Select } from "@/components/ui";
 
 type FormState = { error?: string };
 type FormAction = (prev: FormState, formData: FormData) => Promise<FormState>;
@@ -218,80 +216,71 @@ export function LiabilityForm({
       <input type="hidden" name="kind" value={kind} />
 
       {/* Kind toggle — how the balance behaves, independent of liability_type */}
-      <div className="flex overflow-hidden rounded-md border border-gray-300 text-sm dark:border-gray-700">
-        <button
+      <div className="flex gap-[var(--sp-2)]">
+        <Button
           type="button"
+          variant={kind === "amortizing" ? "primary" : "secondary"}
           onClick={() => chooseKind("amortizing")}
-          className={`min-h-11 flex-1 px-3 py-2 ${
-            kind === "amortizing"
-              ? "bg-black text-white dark:bg-white dark:text-black"
-              : "text-gray-600 dark:text-gray-300"
-          }`}
+          className="flex-1"
         >
           Loan (pays down over time)
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant={kind === "simple" ? "primary" : "secondary"}
           onClick={() => chooseKind("simple")}
-          className={`min-h-11 flex-1 px-3 py-2 ${
-            kind === "simple"
-              ? "bg-black text-white dark:bg-white dark:text-black"
-              : "text-gray-600 dark:text-gray-300"
-          }`}
+          className="flex-1"
         >
           Simple balance
-        </button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm">
-          Name
-          <input
+        <Field label="Name" htmlFor="liability-name">
+          <Input
+            id="liability-name"
             name="name"
             type="text"
             required
             value={nameValue}
             onChange={(e) => setNameValue(e.target.value)}
             placeholder="e.g. Cathay mortgage"
-            className={inputClass}
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Type
-          <select
+        </Field>
+        <Field label="Type" htmlFor="liability-type">
+          <Select
+            id="liability-type"
             name="liability_type"
             value={liabilityType}
             onChange={(e) => onLiabilityTypeChange(e.target.value)}
-            className={inputClass}
           >
             {LIABILITY_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
                 {t.label}
               </option>
             ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Currency
-          <select
+          </Select>
+        </Field>
+        <Field label="Currency" htmlFor="liability-currency">
+          <Select
+            id="liability-currency"
             name="currency"
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
-            className={inputClass}
           >
             {SUPPORTED_CURRENCIES.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
-          </select>
-        </label>
+          </Select>
+        </Field>
 
         {kind === "simple" ? (
           <>
-            <label className="flex flex-col gap-1 text-sm">
-              Current balance
-              <input
+            <Field label="Current balance" htmlFor="liability-balance">
+              <Input
+                id="liability-balance"
                 name="balance"
                 type="number"
                 step="0.01"
@@ -300,12 +289,11 @@ export function LiabilityForm({
                 value={balance}
                 onChange={(e) => setBalance(e.target.value)}
                 placeholder="amount owed"
-                className={inputClass}
               />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Interest rate % (optional)
-              <input
+            </Field>
+            <Field label="Interest rate % (optional)" htmlFor="liability-interest-rate">
+              <Input
+                id="liability-interest-rate"
                 name="interest_rate"
                 type="number"
                 step="0.001"
@@ -313,15 +301,14 @@ export function LiabilityForm({
                 value={interestRate}
                 onChange={(e) => setInterestRate(e.target.value)}
                 placeholder="e.g. 2.1"
-                className={inputClass}
               />
-            </label>
+            </Field>
           </>
         ) : (
           <>
-            <label className="flex flex-col gap-1 text-sm">
-              Original amount
-              <input
+            <Field label="Original amount" htmlFor="liability-original-principal">
+              <Input
+                id="liability-original-principal"
                 name="original_principal"
                 type="number"
                 step="0.01"
@@ -330,12 +317,11 @@ export function LiabilityForm({
                 value={originalPrincipal}
                 onChange={(e) => setOriginalPrincipal(e.target.value)}
                 placeholder="what you borrowed"
-                className={inputClass}
               />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Interest rate %
-              <input
+            </Field>
+            <Field label="Interest rate %" htmlFor="liability-interest-rate">
+              <Input
+                id="liability-interest-rate"
                 name="interest_rate"
                 type="number"
                 step="0.001"
@@ -344,12 +330,11 @@ export function LiabilityForm({
                 value={interestRate}
                 onChange={(e) => setInterestRate(e.target.value)}
                 placeholder="0 is fine"
-                className={inputClass}
               />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Term (years)
-              <input
+            </Field>
+            <Field label="Term (years)" htmlFor="liability-term-years">
+              <Input
+                id="liability-term-years"
                 name="term_years"
                 type="number"
                 step="0.1"
@@ -358,26 +343,24 @@ export function LiabilityForm({
                 value={termYears}
                 onChange={(e) => setTermYears(e.target.value)}
                 placeholder="e.g. 20"
-                className={inputClass}
               />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Start date
-              <input
+            </Field>
+            <Field label="Start date" htmlFor="liability-start-date">
+              <Input
+                id="liability-start-date"
                 name="start_date"
                 type="date"
                 required
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className={inputClass}
               />
-            </label>
+            </Field>
           </>
         )}
       </div>
 
       {kind === "amortizing" && (
-        <p className="text-sm text-gray-600 dark:text-gray-300">
+        <p className="text-sm text-[var(--text-muted)]">
           Estimated balance today:{" "}
           <span className="font-medium">
             {previewBalance !== null
@@ -389,12 +372,12 @@ export function LiabilityForm({
 
       {/* Anchor — edit-only, amortizing-only, per spec */}
       {isEdit && kind === "amortizing" && (
-        <div className="flex flex-col gap-3 rounded-md border border-gray-200 p-3 dark:border-gray-700">
+        <Card className="flex flex-col gap-3">
           <p className="text-sm font-medium">Correct the balance</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-1 text-sm">
-              Corrected balance
-              <input
+            <Field label="Corrected balance" htmlFor="liability-anchor-balance">
+              <Input
+                id="liability-anchor-balance"
                 name="anchor_balance"
                 type="number"
                 step="0.01"
@@ -402,37 +385,39 @@ export function LiabilityForm({
                 value={anchorBalance}
                 onChange={(e) => setAnchorBalance(e.target.value)}
                 placeholder="actual balance now"
-                className={inputClass}
               />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              As of date
-              <input
+            </Field>
+            <Field label="As of date" htmlFor="liability-anchor-date">
+              <Input
+                id="liability-anchor-date"
                 name="anchor_date"
                 type="date"
                 value={anchorDate}
                 onChange={(e) => setAnchorDate(e.target.value)}
-                className={inputClass}
               />
-            </label>
+            </Field>
           </div>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-[var(--text-muted)]">
             Use this if you&apos;ve made extra payments and the estimate has
             drifted.
           </p>
-        </div>
+        </Card>
       )}
 
       {(clientError ?? state.error) && (
-        <p className="text-sm text-red-600">{clientError ?? state.error}</p>
+        <p className="text-[length:var(--t-sm)] text-[var(--neg)]">
+          {clientError ?? state.error}
+        </p>
       )}
 
-      <button
+      <Button
+        type="submit"
+        variant="primary"
         disabled={pending}
-        className="min-h-11 self-start rounded-md bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-black"
+        className="self-start disabled:opacity-50"
       >
         {pending ? "Saving…" : (submitLabel ?? "Add debt")}
-      </button>
+      </Button>
     </form>
   );
 }
