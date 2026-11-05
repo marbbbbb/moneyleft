@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { computePortfolio, type Portfolio } from "@/lib/calculations/portfolio";
 import { PortfolioView } from "./portfolio-view";
+import { PageHeader } from "@/components/ui";
 
 // Live prices — don't prerender; fetch fresh (the provider layer caches quotes).
 export const dynamic = "force-dynamic";
@@ -18,15 +19,13 @@ export default async function PortfolioPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-4 sm:p-6">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold">Portfolio</h1>
-      </header>
+      <PageHeader title="Portfolio" />
 
       {loadError && (
-        <p className="text-sm text-red-600">
+        <p className="text-sm text-[var(--neg)]">
           {loadError}
           <br />
-          <span className="text-gray-500">
+          <span className="text-[var(--text-muted)]">
             If this mentions a missing column, run{" "}
             <code>supabase/002_networth_schema.sql</code> (it adds{" "}
             <code>currency</code> to holdings).

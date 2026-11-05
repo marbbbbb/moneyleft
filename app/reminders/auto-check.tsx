@@ -56,8 +56,8 @@ export function AutoCheck() {
         status?.limited
           ? "text-amber-700 dark:text-amber-500"
           : status?.error
-            ? "text-red-600"
-            : "text-gray-500"
+            ? "text-[var(--neg)]"
+            : "text-[var(--text-muted)]"
       }`}
     >
       {message}

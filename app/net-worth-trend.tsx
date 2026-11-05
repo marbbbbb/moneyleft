@@ -19,7 +19,7 @@ export function NetWorthTrend({
 }) {
   if (points.length === 0) {
     return (
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-[var(--text-muted)]">
         No history recorded yet — check back after your next visit.
       </p>
     );
@@ -27,7 +27,7 @@ export function NetWorthTrend({
 
   if (points.length === 1) {
     return (
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-[var(--text-muted)]">
         Today&apos;s net worth is the first recorded point (
         {money(points[0].value, currency)}). The trend line will appear once a
         few more days of history build up — nothing here is backfilled.
@@ -58,8 +58,10 @@ export function NetWorthTrend({
   const first = points[0];
   const last = points[points.length - 1];
   const trendUp = last.value >= first.value;
-  const strokeClass = trendUp ? "stroke-green-600" : "stroke-red-600";
-  const dotClass = trendUp ? "fill-green-600" : "fill-red-600";
+  const strokeClass = trendUp
+    ? "stroke-[color:var(--pos)]"
+    : "stroke-[color:var(--neg)]";
+  const dotClass = trendUp ? "fill-[var(--pos)]" : "fill-[var(--neg)]";
 
   const sparse = points.length < 5;
 
@@ -78,7 +80,7 @@ export function NetWorthTrend({
           <circle key={i} cx={c.x} cy={c.y} r={sparse ? 3 : 2} className={dotClass} />
         ))}
       </svg>
-      <div className="flex justify-between text-xs text-gray-500">
+      <div className="flex justify-between text-xs text-[var(--text-muted)]">
         <span>
           {new Date(first.date).toLocaleDateString()} · {money(first.value, currency)}
         </span>
@@ -87,7 +89,7 @@ export function NetWorthTrend({
         </span>
       </div>
       {sparse && (
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-[var(--text-subtle)]">
           Still filling in — {points.length} day{points.length === 1 ? "" : "s"}{" "}
           recorded so far. This only tracks forward from when you started using
           the app; there&apos;s no way to reconstruct earlier history.

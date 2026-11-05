@@ -60,8 +60,8 @@ export function PhotoUploader({
         disabled={busy}
         className="text-sm"
       />
-      {busy && <p className="text-gray-500">Uploading…</p>}
-      {error && <p className="text-red-600">{error}</p>}
+      {busy && <p className="text-[var(--text-muted)]">Uploading…</p>}
+      {error && <p className="text-[var(--neg)]">{error}</p>}
     </div>
   );
 }

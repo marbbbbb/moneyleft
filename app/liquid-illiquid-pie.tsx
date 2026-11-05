@@ -34,20 +34,20 @@ export function LiquidIlliquidPie({
     <div className="flex items-center gap-6">
       <svg viewBox={`0 0 ${size} ${size}`} className="h-32 w-32 shrink-0" role="img" aria-label="Liquid vs illiquid split">
         {total <= 0 ? (
-          <circle cx={cx} cy={cy} r={r} className="fill-gray-200 dark:fill-gray-800" />
+          <circle cx={cx} cy={cy} r={r} className="fill-[var(--border)]" />
         ) : liquidPct >= 99.95 ? (
-          <circle cx={cx} cy={cy} r={r} className="fill-green-600" />
+          <circle cx={cx} cy={cy} r={r} className="fill-[var(--pos)]" />
         ) : illiquidPct >= 99.95 ? (
-          <circle cx={cx} cy={cy} r={r} className="fill-gray-400 dark:fill-gray-500" />
+          <circle cx={cx} cy={cy} r={r} className="fill-[var(--text-subtle)]" />
         ) : (
           <>
             <path
               d={wedgePath(cx, cy, r, 0, (liquidPct / 100) * 360)}
-              className="fill-green-600"
+              className="fill-[var(--pos)]"
             />
             <path
               d={wedgePath(cx, cy, r, (liquidPct / 100) * 360, 360)}
-              className="fill-gray-400 dark:fill-gray-500"
+              className="fill-[var(--text-subtle)]"
             />
           </>
         )}
@@ -55,15 +55,15 @@ export function LiquidIlliquidPie({
 
       <div className="flex flex-col gap-2 text-sm">
         <span className="flex items-center gap-2">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-green-600" />
-          Liquid <span className="text-gray-500">{liquidPct.toFixed(0)}%</span>
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--pos)]" />
+          Liquid <span className="text-[var(--text-muted)]">{liquidPct.toFixed(0)}%</span>
         </span>
         <span className="flex items-center gap-2">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-gray-400 dark:bg-gray-500" />
-          Illiquid <span className="text-gray-500">{illiquidPct.toFixed(0)}%</span>
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--text-subtle)]" />
+          Illiquid <span className="text-[var(--text-muted)]">{illiquidPct.toFixed(0)}%</span>
         </span>
         {total <= 0 && (
-          <span className="text-xs text-gray-400">No liquid or illiquid value yet.</span>
+          <span className="text-xs text-[var(--text-subtle)]">No liquid or illiquid value yet.</span>
         )}
       </div>
     </div>

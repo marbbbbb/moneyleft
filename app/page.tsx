@@ -7,6 +7,7 @@ import {
   type SnapshotPoint,
 } from "@/lib/calculations/snapshots";
 import { NetWorthView } from "./net-worth-view";
+import { PageHeader } from "@/components/ui";
 
 // Live prices feed net worth — don't prerender (the provider layer caches quotes).
 export const dynamic = "force-dynamic";
@@ -45,15 +46,13 @@ export default async function Home() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-4 sm:p-6">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold">Net Worth</h1>
-      </header>
+      <PageHeader title="Net Worth" />
 
       {loadError && (
-        <p className="text-sm text-red-600">
+        <p className="text-sm text-[var(--neg)]">
           {loadError}
           <br />
-          <span className="text-gray-500">
+          <span className="text-[var(--text-muted)]">
             If this mentions a missing table/column, run{" "}
             <code>supabase/002_networth_schema.sql</code>.
           </span>

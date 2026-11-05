@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { HoldingValue, Portfolio } from "@/lib/calculations/portfolio";
+import { Button, Card, Money } from "@/components/ui";
 
 const TOTAL_KEY = "portfolio:totalCurrency";
 const HOLDINGS_KEY = "portfolio:holdingCurrencies";
@@ -16,7 +17,7 @@ function money(n: number | null, currency: string): string {
 }
 
 function gainClass(n: number): string {
-  return n >= 0 ? "text-green-600" : "text-red-600";
+  return n >= 0 ? "text-[var(--pos)]" : "text-[var(--neg)]";
 }
 
 function signedMoney(n: number, currency: string, pct: number | null): string {
@@ -70,28 +71,29 @@ export function PortfolioView({ portfolio }: { portfolio: Portfolio }) {
 
   return (
     <>
-      <section className="rounded-lg border border-gray-200 p-5 dark:border-gray-800">
+      <Card>
         <div className="mb-1 flex items-center justify-between">
-          <p className="text-sm text-gray-500">Total market value</p>
-          <div className="flex overflow-hidden rounded-md border border-gray-300 text-xs dark:border-gray-700">
+          <p className="text-sm text-[var(--text-muted)]">Total market value</p>
+          <div className="flex gap-[var(--sp-1)]">
             {portfolio.supportedCurrencies.map((c) => (
-              <button
+              <Button
                 key={c}
+                variant={c === activeTotal.currency ? "primary" : "secondary"}
                 onClick={() => chooseTotalCurrency(c)}
-                className={`px-3 py-2 ${
-                  c === activeTotal.currency
-                    ? "bg-black text-white dark:bg-white dark:text-black"
-                    : ""
-                }`}
               >
                 {c}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
 
-        <p className="text-2xl font-semibold break-words sm:text-3xl">
-          {money(activeTotal.marketValue, activeTotal.currency)}
+        <p className="break-words">
+          <Money
+            amount={activeTotal.marketValue}
+            currency={activeTotal.currency}
+            size="xl"
+            className="font-semibold"
+          />
         </p>
         <p className="mt-1 text-sm">
           Cost {money(activeTotal.cost, activeTotal.currency)} ·{" "}
@@ -103,11 +105,11 @@ export function PortfolioView({ portfolio }: { portfolio: Portfolio }) {
             )}
           </span>
         </p>
-        <p className="mt-2 text-xs text-gray-400">
+        <p className="mt-2 text-xs text-[var(--text-subtle)]">
           Summed in {activeTotal.currency} · prices &amp; FX via Yahoo Finance ·
           as of {asOfLabel}
         </p>
-      </section>
+      </Card>
 
       <section>
         <h2 className="mb-3 text-lg font-medium">
@@ -115,9 +117,9 @@ export function PortfolioView({ portfolio }: { portfolio: Portfolio }) {
         </h2>
 
         {portfolio.holdings.length === 0 ? (
-          <p className="text-sm text-gray-500">No holdings yet.</p>
+          <p className="text-sm text-[var(--text-muted)]">No holdings yet.</p>
         ) : (
-          <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800">
+          <ul className="flex flex-col divide-y divide-[var(--border)]">
             {portfolio.holdings.map((h) => {
               const display = holdingCurrencies[h.id] ?? h.nativeCurrency;
               const v = h.values[display] ?? h.values[h.nativeCurrency];
@@ -127,17 +129,17 @@ export function PortfolioView({ portfolio }: { portfolio: Portfolio }) {
                 <li key={h.id} className="flex justify-between gap-4 py-3">
                   <div className="flex flex-col">
                     <span className="font-medium">{h.ticker}</span>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-[var(--text-muted)]">
                       {h.shares} sh
                       {h.price !== null
                         ? ` @ ${h.price} ${h.nativeCurrency}`
                         : ""}
                     </span>
                     {h.error && (
-                      <span className="text-xs text-red-600">{h.error}</span>
+                      <span className="text-xs text-[var(--neg)]">{h.error}</span>
                     )}
                     {converted && v.fxRateMarket !== null && (
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-[var(--text-subtle)]">
                         FX 1 {h.nativeCurrency} = {v.fxRateMarket} {display} · as
                         of {asOfLabel}
                       </span>
@@ -157,7 +159,7 @@ export function PortfolioView({ portfolio }: { portfolio: Portfolio }) {
                       <button
                         onClick={() => cycleHoldingCurrency(h)}
                         title="Switch this holding's display currency"
-                        className="rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-600 dark:border-gray-700 dark:text-gray-300"
+                        className="rounded border border-[var(--border-strong)] px-2 py-0.5 text-xs text-[var(--text-muted)]"
                       >
                         {display} ⇄
                       </button>

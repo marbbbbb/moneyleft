@@ -6,6 +6,7 @@ import type { NetWorth } from "@/lib/calculations/networth";
 import type { SnapshotPoint } from "@/lib/calculations/snapshots";
 import { LiquidIlliquidPie } from "./liquid-illiquid-pie";
 import { NetWorthTrend } from "./net-worth-trend";
+import { Button, Card, Money } from "@/components/ui";
 
 const TOTAL_KEY = "networth:totalCurrency";
 const DEFAULT_TOTAL_CURRENCY = "TWD";
@@ -64,46 +65,47 @@ export function NetWorthView({
   return (
     <>
       {/* Headline total */}
-      <section className="rounded-lg border border-gray-200 p-6 dark:border-gray-800">
+      <Card>
         <div className="mb-1 flex items-center justify-between">
-          <p className="text-sm uppercase tracking-wide text-gray-500">
+          <p className="text-sm uppercase tracking-wide text-[var(--text-muted)]">
             Total net worth
           </p>
-          <div className="flex overflow-hidden rounded-md border border-gray-300 text-xs dark:border-gray-700">
+          <div className="flex gap-[var(--sp-1)]">
             {netWorth.supportedCurrencies.map((c) => (
-              <button
+              <Button
                 key={c}
+                variant={c === display ? "primary" : "secondary"}
                 onClick={() => chooseCurrency(c)}
-                className={`px-3 py-2 ${
-                  c === display
-                    ? "bg-black text-white dark:bg-white dark:text-black"
-                    : ""
-                }`}
               >
                 {c}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
-        <p className="font-mono tracking-tight text-3xl font-bold break-words sm:text-4xl">
-          {money(netWorth.total[display], display)}
+        <p className="break-words">
+          <Money
+            amount={netWorth.total[display]}
+            currency={display}
+            size="xl"
+            className="font-bold"
+          />
         </p>
-      </section>
+      </Card>
 
       {/* At-a-glance liquid vs illiquid split */}
-      <section className="rounded-lg border border-gray-200 p-5 dark:border-gray-800">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
+      <Card>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">
           Liquid vs illiquid
         </h2>
         <LiquidIlliquidPie
           liquid={netWorth.liquid[display]}
           illiquid={netWorth.illiquid[display]}
         />
-      </section>
+      </Card>
 
       {/* Net worth over time — forward-only history, see net-worth-trend.tsx */}
-      <section className="rounded-lg border border-gray-200 p-5 dark:border-gray-800">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
+      <Card>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">
           Net worth over time
         </h2>
         <NetWorthTrend
@@ -113,85 +115,93 @@ export function NetWorthView({
           }))}
           currency={display}
         />
-      </section>
+      </Card>
 
       {/* Liquid / illiquid / liabilities breakdown */}
       <div className="grid gap-4 sm:grid-cols-3">
         {/* CASH & INVESTMENTS — prominent, populated. The box itself isn't a
             link (it's two things); each sub-line links out individually. */}
-        <section className="rounded-lg border border-gray-200 p-5 dark:border-gray-800">
+        <Card>
           <div className="flex items-baseline justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-green-700 dark:text-green-500">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--pos)]">
               Cash &amp; Investments
             </h2>
-            <span className="text-xs text-gray-400">cash + stocks</span>
+            <span className="text-xs text-[var(--text-subtle)]">cash + stocks</span>
           </div>
-          <p className="font-mono mt-2 text-2xl font-semibold">
-            {money(netWorth.liquid[display], display)}
+          <p className="mt-2">
+            <Money
+              amount={netWorth.liquid[display]}
+              currency={display}
+              size="lg"
+              className="font-semibold"
+            />
           </p>
           <dl className="mt-4 flex flex-col gap-1 text-sm">
             <Link
               href="/cash"
-              className="-mx-2 flex items-center justify-between rounded-[var(--r-sm)] px-2 py-1 transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+              className="-mx-2 flex items-center justify-between rounded-[var(--r-sm)] px-2 py-1 transition-colors motion-reduce:transition-none hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
             >
-              <dt className="text-gray-500">Cash accounts</dt>
+              <dt className="text-[var(--text-muted)]">Cash accounts</dt>
               <dd className="flex items-center gap-1">
-                <span className="font-mono">{money(netWorth.cash[display], display)}</span>
+                <Money amount={netWorth.cash[display]} currency={display} size="sm" />
                 <span className="text-[var(--text-subtle)]" aria-hidden="true">
                   →
                 </span>
               </dd>
             </Link>
             {cashConfirmedUnavailable ? (
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-[var(--text-subtle)]">
                 Showing account balances only — we don&apos;t know when you
                 last confirmed them.
               </p>
             ) : (
-              cashRateNote && <p className="text-xs text-gray-400">{cashRateNote}</p>
+              cashRateNote && <p className="text-xs text-[var(--text-subtle)]">{cashRateNote}</p>
             )}
             <Link
               href="/holdings"
-              className="-mx-2 flex items-center justify-between rounded-[var(--r-sm)] px-2 py-1 transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+              className="-mx-2 flex items-center justify-between rounded-[var(--r-sm)] px-2 py-1 transition-colors motion-reduce:transition-none hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
             >
-              <dt className="text-gray-500">Stock holdings</dt>
+              <dt className="text-[var(--text-muted)]">Stock holdings</dt>
               <dd className="flex items-center gap-1">
-                <span className="font-mono">{money(netWorth.holdings[display], display)}</span>
+                <Money amount={netWorth.holdings[display]} currency={display} size="sm" />
                 <span className="text-[var(--text-subtle)]" aria-hidden="true">
                   →
                 </span>
               </dd>
             </Link>
           </dl>
-        </section>
+        </Card>
 
         {/* ASSETS — links to the asset vault */}
         <Link href="/assets" className="block">
-          <section className="rounded-lg border border-dashed border-gray-300 p-5 transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] dark:border-gray-700">
+          <Card className="border-dashed transition-colors motion-reduce:transition-none hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]">
             <div className="flex items-baseline justify-between">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                 Assets
               </h2>
               <span className="flex items-center gap-1">
-                <span className="text-xs text-gray-400">assets</span>
+                <span className="text-xs text-[var(--text-subtle)]">assets</span>
                 <span className="text-[var(--text-subtle)]" aria-hidden="true">
                   →
                 </span>
               </span>
             </div>
-            <p
-              className={`font-mono mt-2 text-2xl font-semibold ${
-                netWorth.illiquid[display] > 0 ? "" : "text-gray-400"
-              }`}
-            >
-              {money(netWorth.illiquid[display], display)}
+            <p className="mt-2">
+              <Money
+                amount={netWorth.illiquid[display]}
+                currency={display}
+                size="lg"
+                className={`font-semibold ${
+                  netWorth.illiquid[display] > 0 ? "" : "[--text:var(--text-subtle)]"
+                }`}
+              />
             </p>
             {netWorth.assetCost[display] > 0 ? (
               <p
                 className={`mt-1 text-sm ${
                   netWorth.assetGain[display] >= 0
-                    ? "text-green-600"
-                    : "text-red-600"
+                    ? "text-[var(--pos)]"
+                    : "text-[var(--neg)]"
                 }`}
               >
                 <span className="font-mono">
@@ -202,50 +212,53 @@ export function NetWorthView({
                       netWorth.assetGainPct[display]!,
                     ).toFixed(1)}%)`}
                 </span>{" "}
-                <span className="text-gray-500">unrealized vs purchase</span>
+                <span className="text-[var(--text-muted)]">unrealized vs purchase</span>
               </p>
             ) : (
-              <p className="mt-4 text-sm text-gray-500">
+              <p className="mt-4 text-sm text-[var(--text-muted)]">
                 Add assets in the vault to see illiquid net worth and unrealized
                 gain here.
               </p>
             )}
-          </section>
+          </Card>
         </Link>
 
         {/* DEBTS — links to liabilities, subtracted from net worth */}
         <Link href="/liabilities" className="block">
-          <section className="rounded-lg border border-gray-200 p-5 transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] dark:border-gray-800">
+          <Card className="transition-colors motion-reduce:transition-none hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]">
             <div className="flex items-baseline justify-between">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-red-700 dark:text-red-500">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--neg)]">
                 Debts
               </h2>
               <span className="flex items-center gap-1">
-                <span className="text-xs text-gray-400">debts</span>
+                <span className="text-xs text-[var(--text-subtle)]">debts</span>
                 <span className="text-[var(--text-subtle)]" aria-hidden="true">
                   →
                 </span>
               </span>
             </div>
-            <p
-              className={`font-mono mt-2 text-2xl font-semibold ${
-                netWorth.liabilities[display] > 0 ? "text-red-600" : "text-gray-400"
-              }`}
-            >
-              {netWorth.liabilities[display] > 0 ? "−" : ""}
-              {money(netWorth.liabilities[display], display)}
+            <p className="mt-2">
+              <Money
+                amount={-netWorth.liabilities[display]}
+                currency={display}
+                signed
+                size="lg"
+                className={`font-semibold ${
+                  netWorth.liabilities[display] > 0 ? "" : "[--text:var(--text-subtle)]"
+                }`}
+              />
             </p>
             {netWorth.liabilities[display] > 0 ? (
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-[var(--text-muted)]">
                 Subtracted from your net worth.
               </p>
             ) : (
-              <p className="mt-4 text-sm text-gray-500">
+              <p className="mt-4 text-sm text-[var(--text-muted)]">
                 No debts. Add a mortgage, loan, or card balance on the{" "}
                 Liabilities page.
               </p>
             )}
-          </section>
+          </Card>
         </Link>
       </div>
     </>

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { evaluateRules, type RuleEvaluation } from "@/lib/calculations/rules";
 import { formatAmount } from "@/lib/rules";
 import { AutoCheck } from "./auto-check";
+import { PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -36,23 +37,21 @@ export default async function RemindersPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-4 sm:p-6">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Reminders</h1>
-          <p className="text-sm text-gray-500">
-            Gentle nudges based on the rules you set.
-          </p>
-        </div>
-      </header>
+      <div>
+        <PageHeader title="Reminders" />
+        <p className="text-sm text-[var(--text-muted)]">
+          Gentle nudges based on the rules you set.
+        </p>
+      </div>
 
       {/* Rule status — computed live, costs nothing */}
       <section>
         <h2 className="mb-3 text-lg font-medium">This month so far</h2>
 
-        {evalError && <p className="text-sm text-red-600">{evalError}</p>}
+        {evalError && <p className="text-sm text-[var(--neg)]">{evalError}</p>}
 
         {!evalError && evaluations.length === 0 && (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-[var(--text-muted)]">
             No rules yet —{" "}
             <Link href="/plan" className="underline">
               set a few in your plan
@@ -61,7 +60,7 @@ export default async function RemindersPage() {
           </p>
         )}
 
-        <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800">
+        <ul className="flex flex-col divide-y divide-[var(--border)]">
           {evaluations.map((e) => (
             <li
               key={e.rule.id}
@@ -69,7 +68,7 @@ export default async function RemindersPage() {
             >
               <div className="flex flex-col">
                 <span className="text-sm font-medium">{e.label}</span>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-[var(--text-muted)]">
                   {e.skipped
                     ? e.skipped
                     : `${formatAmount(e.actual)} of ${formatAmount(e.target)}`}
@@ -102,7 +101,7 @@ export default async function RemindersPage() {
         </h2>
 
         {notifications.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-[var(--text-muted)]">
             Nothing here yet. If something goes over one of your limits,
             a short note will show up here.
           </p>
@@ -113,7 +112,7 @@ export default async function RemindersPage() {
                 key={n.id}
                 className={`rounded-lg border p-4 ${
                   n.is_read
-                    ? "border-gray-200 opacity-60 dark:border-gray-800"
+                    ? "border-[var(--border)] opacity-60"
                     : "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950"
                 }`}
               >
@@ -121,18 +120,18 @@ export default async function RemindersPage() {
                   <div className="flex flex-col gap-1">
                     <span className="font-medium">{n.title}</span>
                     {n.body && (
-                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                      <p className="text-sm text-[var(--text-muted)]">
                         {n.body}
                       </p>
                     )}
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-[var(--text-subtle)]">
                       {new Date(n.created_at).toLocaleDateString()}
                     </span>
                   </div>
                   {!n.is_read && (
                     <span
                       aria-hidden
-                      className="mt-1 h-2 w-2 shrink-0 rounded-full bg-red-600"
+                      className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[var(--neg)]"
                       title="New"
                     />
                   )}
@@ -142,7 +141,7 @@ export default async function RemindersPage() {
           </ul>
         )}
 
-        <p className="mt-4 text-xs text-gray-500">
+        <p className="mt-4 text-xs text-[var(--text-muted)]">
           Reminders are observations based on rules you set — not financial
           advice.
         </p>
