@@ -54,7 +54,7 @@ export function AutoCheck() {
     <p
       className={`text-xs ${
         status?.limited
-          ? "text-amber-700 dark:text-amber-500"
+          ? "text-[var(--warn)]"
           : status?.error
             ? "text-[var(--neg)]"
             : "text-[var(--text-muted)]"

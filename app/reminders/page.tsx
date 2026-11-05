@@ -77,10 +77,10 @@ export default async function RemindersPage() {
               <span
                 className={`rounded px-2 py-0.5 text-xs ${
                   e.skipped
-                    ? "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                    ? "bg-[var(--neutral-soft)] text-[var(--neutral-soft-fg-muted)]"
                     : e.broken
-                      ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-                      : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                      ? "bg-[var(--warn-soft)] text-[var(--warn-soft-fg)]"
+                      : "bg-[var(--pos-soft)] text-[var(--pos-soft-fg)]"
                 }`}
               >
                 {e.skipped ? "not checked" : e.broken ? "over" : "within"}
@@ -113,7 +113,7 @@ export default async function RemindersPage() {
                 className={`rounded-lg border p-4 ${
                   n.is_read
                     ? "border-[var(--border)] opacity-60"
-                    : "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950"
+                    : "border-[var(--warn-border)] bg-[var(--warn-tint)]"
                 }`}
               >
                 <div className="flex items-start justify-between gap-4">

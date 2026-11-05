@@ -27,7 +27,7 @@ export function EstimateButton({ assetId }: { assetId: string }) {
         <p
           className={`text-sm ${
             state.limited
-              ? "text-amber-700 dark:text-amber-500" // hit the daily cap — expected, not a failure
+              ? "text-[var(--warn)]" // hit the daily cap — expected, not a failure
               : "text-[var(--neg)]"
           }`}
         >

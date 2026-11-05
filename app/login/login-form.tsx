@@ -59,7 +59,7 @@ export function LoginForm({ demoAvailable }: { demoAvailable: boolean }) {
           formAction={loginAction}
           disabled={pending}
           variant="primary"
-          className="min-h-11 flex-1 disabled:opacity-50"
+          className="flex-1 disabled:opacity-50"
         >
           {loginPending ? "Signing in…" : "Sign in"}
         </Button>
@@ -67,7 +67,7 @@ export function LoginForm({ demoAvailable }: { demoAvailable: boolean }) {
           formAction={signupAction}
           disabled={pending}
           variant="secondary"
-          className="min-h-11 flex-1 disabled:opacity-50"
+          className="flex-1 disabled:opacity-50"
         >
           {signupPending ? "Creating…" : "Sign up"}
         </Button>

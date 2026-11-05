@@ -4,11 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { addAsset } from "./actions";
 import { ASSET_CATEGORIES } from "@/lib/assets";
 import { SUPPORTED_CURRENCIES } from "@/lib/tickers";
-import { Button, Field, Input, Select } from "@/components/ui";
-
-// Only the <textarea> below still uses this: components/ui has no Textarea.
-const inputClass =
-  "rounded-md border border-gray-300 px-3 py-2 text-base dark:border-gray-700 dark:bg-gray-900";
+import { Button, Field, Input, Select, Textarea } from "@/components/ui";
 
 export function AssetForm() {
   const [state, action, pending] = useActionState(addAsset, {});
@@ -142,11 +138,10 @@ export function AssetForm() {
 
       <label className="flex flex-col gap-1 text-sm">
         Details (optional)
-        <textarea
+        <Textarea
           name="description"
           rows={3}
           placeholder="Anything you want to note — condition, serial number, address, etc."
-          className={inputClass}
         />
       </label>
 

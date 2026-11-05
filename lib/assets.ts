@@ -45,11 +45,11 @@ export function formatRange(
 export function confidenceClass(level: string): string {
   switch (level) {
     case "high":
-      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      return "bg-[var(--pos-soft)] text-[var(--pos-soft-fg)]";
     case "medium":
-      return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200";
+      return "bg-[var(--warn-soft)] text-[var(--warn-soft-fg)]";
     default:
-      return "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200";
+      return "bg-[var(--neutral-soft)] text-[var(--neutral-soft-fg)]";
   }
 }
 
@@ -115,7 +115,7 @@ export function formatSignedMoney(n: number, currency: string): string {
 }
 
 export function changeColorClass(n: number): string {
-  return n >= 0 ? "text-green-600" : "text-red-600";
+  return n >= 0 ? "text-[var(--pos)]" : "text-[var(--neg)]";
 }
 
 // --- valuation source display (badge label + styling) ---
@@ -144,10 +144,10 @@ export function isAiSource(source: string): boolean {
 // Real market data reads blue; AI estimates read purple — a clear visual split.
 export function sourceBadgeClass(source: string): string {
   if (source === "ai_estimate") {
-    return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+    return "bg-[var(--ai-soft)] text-[var(--ai-soft-fg)]";
   }
   if (source === "market") {
-    return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+    return "bg-[var(--info-soft)] text-[var(--info-soft-fg)]";
   }
-  return "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200";
+  return "bg-[var(--neutral-soft)] text-[var(--neutral-soft-fg)]";
 }

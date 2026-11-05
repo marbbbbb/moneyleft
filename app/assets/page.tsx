@@ -10,7 +10,7 @@ import {
 } from "@/lib/assets";
 import { deleteAsset } from "./actions";
 import { AssetForm } from "./asset-form";
-import { PageHeader } from "@/components/ui";
+import { PageHeader, TextButton } from "@/components/ui";
 
 type Asset = {
   id: string;
@@ -143,9 +143,7 @@ export default async function AssetsPage() {
                   </div>
                   <form action={deleteAsset}>
                     <input type="hidden" name="id" value={a.id} />
-                    <button className="text-sm text-[var(--neg)] hover:underline">
-                      Delete
-                    </button>
+                    <TextButton tone="danger">Delete</TextButton>
                   </form>
                 </div>
               </li>

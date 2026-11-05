@@ -156,13 +156,14 @@ export function PortfolioView({ portfolio }: { portfolio: Portfolio }) {
                       </span>
                     )}
                     {h.availableCurrencies.length > 1 && (
-                      <button
+                      <Button
+                        variant="outline"
+                        size="compact"
                         onClick={() => cycleHoldingCurrency(h)}
                         title="Switch this holding's display currency"
-                        className="rounded border border-[var(--border-strong)] px-2 py-0.5 text-xs text-[var(--text-muted)]"
                       >
                         {display} ⇄
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </li>

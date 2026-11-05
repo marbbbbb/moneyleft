@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Card, PageHeader } from "@/components/ui";
+import { Card, PageHeader, TextButton } from "@/components/ui";
 import {
   assetCategoryLabel,
   changeColorClass,
@@ -217,9 +217,7 @@ export default async function AssetDetailPage({
                   <input type="hidden" name="id" value={p.id} />
                   <input type="hidden" name="storage_path" value={p.storage_path} />
                   <input type="hidden" name="asset_id" value={asset.id} />
-                  <button className="text-xs text-[var(--neg)] hover:underline">
-                    Remove
-                  </button>
+                  <TextButton tone="danger" size="xs">Remove</TextButton>
                 </form>
               </li>
             ))}

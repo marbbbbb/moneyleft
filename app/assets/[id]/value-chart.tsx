@@ -27,7 +27,11 @@ export function ValueChart({ valuations }: { valuations: ValuationPoint[] }) {
     .map((c, i) => `${i === 0 ? "M" : "L"}${c.x.toFixed(1)},${c.y.toFixed(1)}`)
     .join(" ");
 
-  const stroke = mids[mids.length - 1] >= mids[0] ? "#16a34a" : "#dc2626";
+  const up = mids[mids.length - 1] >= mids[0];
+  const strokeClass = up
+    ? "stroke-[color:var(--pos)]"
+    : "stroke-[color:var(--neg)]";
+  const dotClass = up ? "fill-[var(--pos)]" : "fill-[var(--neg)]";
 
   return (
     <svg
@@ -37,9 +41,9 @@ export function ValueChart({ valuations }: { valuations: ValuationPoint[] }) {
       role="img"
       aria-label="Value history"
     >
-      <path d={path} fill="none" stroke={stroke} strokeWidth={2} />
+      <path d={path} fill="none" className={strokeClass} strokeWidth={2} />
       {coords.map((c, i) => (
-        <circle key={i} cx={c.x} cy={c.y} r={2.5} fill={stroke} />
+        <circle key={i} cx={c.x} cy={c.y} r={2.5} className={dotClass} />
       ))}
     </svg>
   );

@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { liabilityTypeLabel } from "@/lib/liabilities";
 import { addLiability, deleteLiability } from "./actions";
 import { LiabilityForm } from "./liability-form";
 import { amortizationProgress, currentBalance } from "@/lib/amortization";
-import { Money, PageHeader } from "@/components/ui";
+import { Money, PageHeader, TextButton } from "@/components/ui";
 
 type Liability = {
   id: string;
@@ -105,17 +104,10 @@ export default async function LiabilitiesPage() {
                     signed
                     className="font-medium"
                   />
-                  <Link
-                    href={`/liabilities/${l.id}/edit`}
-                    className="min-h-11 px-1 text-sm text-[var(--text-muted)] hover:underline"
-                  >
-                    Edit
-                  </Link>
+                  <TextButton href={`/liabilities/${l.id}/edit`}>Edit</TextButton>
                   <form action={deleteLiability}>
                     <input type="hidden" name="id" value={l.id} />
-                    <button className="min-h-11 px-1 text-sm text-[var(--neg)] hover:underline">
-                      Delete
-                    </button>
+                    <TextButton tone="danger">Delete</TextButton>
                   </form>
                 </div>
               </li>

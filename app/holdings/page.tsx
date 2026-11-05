@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { addHolding, deleteHolding } from "./actions";
 import { HoldingForm } from "./holding-form";
-import { PageHeader } from "@/components/ui";
+import { PageHeader, TextButton } from "@/components/ui";
 
 type Holding = {
   id: string;
@@ -64,17 +63,10 @@ export default async function HoldingsPage() {
                 </span>
               </div>
               <div className="flex shrink-0 items-center gap-3">
-                <Link
-                  href={`/holdings/${h.id}/edit`}
-                  className="min-h-11 px-1 text-sm text-[var(--text-muted)] hover:underline"
-                >
-                  Edit
-                </Link>
+                <TextButton href={`/holdings/${h.id}/edit`}>Edit</TextButton>
                 <form action={deleteHolding}>
                   <input type="hidden" name="id" value={h.id} />
-                  <button className="min-h-11 px-1 text-sm text-[var(--neg)] hover:underline">
-                    Delete
-                  </button>
+                  <TextButton tone="danger">Delete</TextButton>
                 </form>
               </div>
             </li>

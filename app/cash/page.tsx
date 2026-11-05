@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { addCashAccount, deleteCashAccount } from "./actions";
 import { CashForm } from "./cash-form";
-import { Money, PageHeader } from "@/components/ui";
+import { Money, PageHeader, TextButton } from "@/components/ui";
 
 type CashAccount = {
   id: string;
@@ -62,17 +61,10 @@ export default async function CashPage() {
                   currency={a.currency}
                   className="font-medium"
                 />
-                <Link
-                  href={`/cash/${a.id}/edit`}
-                  className="min-h-11 px-1 text-sm text-[var(--text-muted)] hover:underline"
-                >
-                  Edit
-                </Link>
+                <TextButton href={`/cash/${a.id}/edit`}>Edit</TextButton>
                 <form action={deleteCashAccount}>
                   <input type="hidden" name="id" value={a.id} />
-                  <button className="min-h-11 px-1 text-sm text-[var(--neg)] hover:underline">
-                    Delete
-                  </button>
+                  <TextButton tone="danger">Delete</TextButton>
                 </form>
               </div>
             </li>
